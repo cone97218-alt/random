@@ -12,8 +12,8 @@ import { generateId } from '../utils/dom.js';
 import { getAllMacros, saveMacro, saveGroup } from './storage.js';
 
 /**
- * Splits options in a {{random::opt1,opt2,...}} content string by commas,
- * respecting nested braces {{...}}.
+ * Splits options in a {{random::opt1,opt2,...}} or {{random::opt1::opt2::...}} content string,
+ * respecting nested braces {{...}}. Supports both commas (,) and colons (::) as delimiters.
  * @param {string} innerContent
  * @returns {string[]}
  */
@@ -40,7 +40,11 @@ export function splitTopLevelOptions(innerContent) {
         } else if (char === '}') {
             braceDepth = Math.max(0, braceDepth - 1);
             current += char;
-        } else if (char === ',' && braceDepth === 0) {
+        } else if (braceDepth === 0 && char === ':' && nextChar === ':') {
+            options.push(current.trim());
+            current = '';
+            i++; // Skip the second colon
+        } else if (braceDepth === 0 && (char === ',' || char === '，')) {
             options.push(current.trim());
             current = '';
         } else {
@@ -52,43 +56,21 @@ export function splitTopLevelOptions(innerContent) {
         options.push(current.trim());
     }
 
-    return options;
+    return options.filter(o => o.length > 0);
 }
 
 /**
- * Generate a friendly Chinese ID for a macro based on options or context.
- * @param {string[]} options
+ * Generate a clean numeric ID for a macro based on sequential ordering.
  * @param {number} index
  * @param {Set<string>} existingIds
  * @returns {string}
  */
-function generateMacroId(options, index, existingIds) {
-    // Try to extract clean keywords from options
-    const cleanOpts = options.map(o => o.replace(/\{\{[^}]+\}\}/g, '').trim()).filter(Boolean);
-    let candidate = '';
-
-    if (cleanOpts.length >= 2) {
-        const o1 = cleanOpts[0].substring(0, 5).replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '');
-        const o2 = cleanOpts[1].substring(0, 5).replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '');
-        if (o1 && o2) {
-            candidate = `${o1}_${o2}`;
-        } else if (o1) {
-            candidate = o1;
-        }
-    } else if (cleanOpts.length === 1) {
-        const o1 = cleanOpts[0].substring(0, 6).replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '');
-        if (o1) candidate = o1;
+function generateMacroId(index, existingIds) {
+    let num = index;
+    while (existingIds.has(String(num).toLowerCase())) {
+        num++;
     }
-
-    if (!candidate) {
-        candidate = `随机宏_${index}`;
-    }
-
-    let finalId = candidate;
-    let suffix = 2;
-    while (existingIds.has(finalId.toLowerCase())) {
-        finalId = `${candidate}_${suffix++}`;
-    }
+    const finalId = String(num);
     existingIds.add(finalId.toLowerCase());
     return finalId;
 }
@@ -105,7 +87,7 @@ export function convertStRandomMacros(text, suggestedGroupName = '') {
     }
 
     const macros = [];
-    const usedIds = new Set(getAllMacros().map(m => m.id.toLowerCase()));
+    const usedIds = new Set(getAllMacros().map(m => String(m.id).toLowerCase()));
     let macroCounter = 1;
 
     /**
@@ -151,8 +133,8 @@ export function convertStRandomMacros(text, suggestedGroupName = '') {
                         };
                     });
 
-                    // Generate ID
-                    const macroId = generateMacroId(rawOptions, macroCounter++, usedIds);
+                    // Generate numeric ID
+                    const macroId = generateMacroId(macroCounter++, usedIds);
 
                     macros.push({
                         id: macroId,
@@ -174,7 +156,7 @@ export function convertStRandomMacros(text, suggestedGroupName = '') {
     }
 
     const template = processString(text.trim());
-    const groupName = suggestedGroupName.trim() || (macros.length > 0 ? `转换组_${macros[macros.length - 1].id}` : '酒馆宏导入组');
+    const groupName = suggestedGroupName.trim() || (macros.length > 0 ? `酒馆宏转换组_${macros[macros.length - 1].id}` : '酒馆宏导入组');
 
     return {
         template,
