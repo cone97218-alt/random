@@ -123,11 +123,9 @@ function _buildGroupCard(group) {
         card.classList.toggle('random-group-card--disabled', !group.enabled);
     });
     
-    // Scan and auto bind macros from template
+    // Scan and auto bind macros from template (recursively including nested macros)
     card.querySelector('.random-gc-scan')?.addEventListener('click', () => {
-        const tpl = group.template || '';
-        const matches = [...tpl.matchAll(/\{\{random_([^}]+)\}\}/g)].map(m => m[1].trim());
-        const uniqueIds = [...new Set(matches.filter(id => id.length > 0))];
+        const uniqueIds = _collectAllReferencedMacroIds(group.template, (group.macros || []).map(id => getMacroById(id)).filter(Boolean));
 
         if (uniqueIds.length === 0) {
             showToast(`宏组「${group.name}」的模板中未发现 {{random_宏ID}}`, 'info');
@@ -148,7 +146,7 @@ function _buildGroupCard(group) {
 
         if (updated) saveGroup(group);
         refreshGroupList();
-        showToast(`已重新扫描并为「${group.name}」同步绑定 ${uniqueIds.length} 个宏`, 'success');
+        showToast(`已递归扫描并为「${group.name}」同步绑定 ${uniqueIds.length} 个层级宏`, 'success');
     });
 
     // Re-roll button
@@ -192,12 +190,12 @@ function _buildGroupCard(group) {
         });
     });
     
-    // Individual macro re-roll on chip
+    // Individual macro re-roll on chip (with cascading parent update)
     card.querySelectorAll('.random-macro-chip-reroll').forEach(rollBtn => {
         rollBtn.addEventListener('click', () => {
             const macroId = rollBtn.dataset.macroId;
             const state = getGroupChatState(group.id);
-            const newValues = rollMacros([macroId], state);
+            const newValues = rollMacros([macroId], state, group);
             state.currentValues = newValues;
             saveChatState();
             refreshGroupList();
@@ -335,11 +333,10 @@ function _bindGroupModal(container) {
         openMacroModal(null, true);
     });
 
-    // Scan template for {{random_xxx}}
+    // Scan template for {{random_xxx}} (recursively including nested macros)
     modal.querySelector('#random-gm-scan-btn')?.addEventListener('click', () => {
         const tpl = modal.querySelector('#random-gm-template')?.value || '';
-        const matches = [...tpl.matchAll(/\{\{random_([^}]+)\}\}/g)].map(m => m[1].trim());
-        const uniqueIds = [...new Set(matches.filter(id => id.length > 0))];
+        const uniqueIds = _collectAllReferencedMacroIds(tpl, _groupMacros);
 
         if (uniqueIds.length === 0) {
             showToast('未在模板中检测到 {{random_宏ID}}', 'info');
@@ -361,13 +358,62 @@ function _bindGroupModal(container) {
         });
 
         _renderGroupMacroList(modal);
-        showToast(addedCount > 0 ? `已自动补齐 ${addedCount} 个宏` : '所有模板中的宏已在列表中', 'success');
+        showToast(addedCount > 0 ? `已递归补齐 ${addedCount} 个层级宏` : '所有模板及嵌套宏已在列表中', 'success');
     });
     
     // Save group
     modal.querySelector('#random-group-modal-save')?.addEventListener('click', () => {
         _saveGroupFromModal(modal);
     });
+}
+
+/**
+ * Recursively discover all macro IDs referenced in a template and in any referenced macro options.
+ * @param {string} template
+ * @param {Array<Object>} [seedMacros=[]]
+ * @returns {string[]}
+ */
+function _collectAllReferencedMacroIds(template, seedMacros = []) {
+    const collected = new Set();
+    const queue = [];
+
+    // 1. From template
+    const templateMatches = [...(template || '').matchAll(/\{\{random_([^}]+)\}\}/g)].map(m => m[1].trim());
+    templateMatches.forEach(id => {
+        if (id && !collected.has(id)) {
+            collected.add(id);
+            queue.push(id);
+        }
+    });
+
+    // 2. From seedMacros
+    seedMacros.forEach(m => {
+        const id = typeof m === 'string' ? m : m?.id;
+        if (id && !collected.has(id)) {
+            collected.add(id);
+            queue.push(id);
+        }
+    });
+
+    // 3. BFS through options for nested {{random_xxx}}
+    while (queue.length > 0) {
+        const currentId = queue.shift();
+        const macro = seedMacros.find(m => m && m.id === currentId) || getMacroById(currentId);
+        if (macro && Array.isArray(macro.options)) {
+            for (const opt of macro.options) {
+                const optText = typeof opt === 'string' ? opt : (opt?.text || '');
+                const optMatches = [...optText.matchAll(/\{\{random_([^}]+)\}\}/g)].map(m => m[1].trim());
+                for (const nestedId of optMatches) {
+                    if (nestedId && !collected.has(nestedId)) {
+                        collected.add(nestedId);
+                        queue.push(nestedId);
+                    }
+                }
+            }
+        }
+    }
+
+    return [...collected];
 }
 
 function _renderGroupMacroList(modal) {
@@ -424,9 +470,9 @@ function _saveGroupFromModal(modal) {
     const keepYRaw  = modal.querySelector('#random-gm-keep-y')?.value.trim();
     const templateText = modal.querySelector('#random-gm-template')?.value || '';
 
-    // Auto scan and ensure all macros in template exist
-    const templateMacros = [...templateText.matchAll(/\{\{random_([^}]+)\}\}/g)].map(m => m[1].trim());
-    templateMacros.forEach(id => {
+    // Auto scan recursively and ensure all macros in template and nested options exist
+    const allReferencedIds = _collectAllReferencedMacroIds(templateText, _groupMacros);
+    allReferencedIds.forEach(id => {
         if (id && !_groupMacros.some(m => m.id === id)) {
             const existingGlobal = getMacroById(id);
             _groupMacros.push(existingGlobal ? { ...existingGlobal } : { id, triggerProbability: 100, options: [] });

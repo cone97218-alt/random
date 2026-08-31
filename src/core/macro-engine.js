@@ -142,6 +142,15 @@ export function resolveGroupTemplate(group, groupChatState, forceReroll = false)
     // Resolve the template
     const resolved = resolveTemplate(group.template || '', cache);
     
+    // Ensure all defined macros in this group have a resolved value
+    if (Array.isArray(group.macros)) {
+        for (const macroId of group.macros) {
+            if (!cache.has(macroId)) {
+                resolveMacro(macroId, cache, []);
+            }
+        }
+    }
+    
     // Collect all new values from cache
     const newValues = {};
     for (const [macroId, value] of cache.entries()) {
@@ -152,20 +161,48 @@ export function resolveGroupTemplate(group, groupChatState, forceReroll = false)
 }
 
 /**
- * Roll (or re-roll) specific macros in a group, leaving others untouched.
+ * Roll (or re-roll) specific macros in a group, cascading updates to dependent parent macros.
  *
  * @param {string[]} macroIds - Which macros to re-roll
  * @param {Object} groupChatState
+ * @param {Object} [group] - Optional group to cascade parent re-resolutions
  * @returns {Object} Updated currentValues
  */
-export function rollMacros(macroIds, groupChatState) {
+export function rollMacros(macroIds, groupChatState, group = null) {
     const cache = new Map(Object.entries(groupChatState.currentValues || {}));
     const pinnedMacros = new Set(groupChatState.pinnedMacros || []);
+    const rerolledSet = new Set(macroIds.filter(id => !pinnedMacros.has(id)));
     
+    for (const macroId of rerolledSet) {
+        cache.delete(macroId);
+    }
+
+    // Invalidate any parent macros that reference the re-rolled macros
+    if (group && Array.isArray(group.macros)) {
+        for (const mId of group.macros) {
+            if (pinnedMacros.has(mId)) continue;
+            const macro = getMacroById(mId);
+            if (macro && macro.options) {
+                const referencesRerolled = macro.options.some(opt => {
+                    const text = typeof opt === 'string' ? opt : (opt.text || '');
+                    return [...rerolledSet].some(targetId => text.includes(`{{random_${targetId}}}`));
+                });
+                if (referencesRerolled) {
+                    cache.delete(mId);
+                }
+            }
+        }
+    }
+    
+    // Re-resolve target macros
     for (const macroId of macroIds) {
-        if (pinnedMacros.has(macroId)) continue; // skip pinned
-        cache.delete(macroId); // force re-resolve
+        if (pinnedMacros.has(macroId)) continue;
         resolveMacro(macroId, cache, []);
+    }
+
+    // Re-resolve group template if available
+    if (group && group.template) {
+        resolveTemplate(group.template, cache);
     }
     
     const newValues = {};

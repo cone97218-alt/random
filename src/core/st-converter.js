@@ -12,15 +12,48 @@ import { generateId } from '../utils/dom.js';
 import { getAllMacros, saveMacro, saveGroup } from './storage.js';
 
 /**
- * Splits options in a {{random::opt1,opt2,...}} or {{random::opt1::opt2::...}} content string,
- * respecting nested braces {{...}}. Supports both commas (,) and colons (::) as delimiters.
+ * Splits options in a {{random::...}} content string.
+ * Automatically detects whether the delimiter is '::' or ',' at the current depth level,
+ * and preserves commas inside parentheses (...), brackets [...], and nested macros {{...}}.
+ *
  * @param {string} innerContent
  * @returns {string[]}
  */
 export function splitTopLevelOptions(innerContent) {
+    if (!innerContent || typeof innerContent !== 'string') return [];
+
+    // 1. First pass: detect if '::' exists at top level (outside {{...}})
+    let hasColons = false;
+    let braceDepth = 0;
+
+    for (let i = 0; i < innerContent.length; i++) {
+        const char = innerContent[i];
+        const nextChar = innerContent[i + 1];
+
+        if (char === '{' && nextChar === '{') {
+            braceDepth += 2;
+            i++;
+        } else if (char === '}' && nextChar === '}') {
+            braceDepth = Math.max(0, braceDepth - 2);
+            i++;
+        } else if (char === '{') {
+            braceDepth++;
+        } else if (char === '}') {
+            braceDepth = Math.max(0, braceDepth - 1);
+        } else if (braceDepth === 0 && char === ':' && nextChar === ':') {
+            hasColons = true;
+            break;
+        }
+    }
+
+    const delimiter = hasColons ? '::' : ',';
+
+    // 2. Second pass: split by the detected delimiter, respecting braces, parens, brackets
     const options = [];
     let current = '';
-    let braceDepth = 0;
+    braceDepth = 0;
+    let parenDepth = 0;
+    let bracketDepth = 0;
 
     for (let i = 0; i < innerContent.length; i++) {
         const char = innerContent[i];
@@ -40,11 +73,23 @@ export function splitTopLevelOptions(innerContent) {
         } else if (char === '}') {
             braceDepth = Math.max(0, braceDepth - 1);
             current += char;
-        } else if (braceDepth === 0 && char === ':' && nextChar === ':') {
+        } else if (char === '(') {
+            parenDepth++;
+            current += char;
+        } else if (char === ')') {
+            parenDepth = Math.max(0, parenDepth - 1);
+            current += char;
+        } else if (char === '[') {
+            bracketDepth++;
+            current += char;
+        } else if (char === ']') {
+            bracketDepth = Math.max(0, bracketDepth - 1);
+            current += char;
+        } else if (braceDepth === 0 && delimiter === '::' && char === ':' && nextChar === ':') {
             options.push(current.trim());
             current = '';
             i++; // Skip the second colon
-        } else if (braceDepth === 0 && (char === ',' || char === '，')) {
+        } else if (braceDepth === 0 && delimiter === ',' && parenDepth === 0 && bracketDepth === 0 && (char === ',' || char === '，')) {
             options.push(current.trim());
             current = '';
         } else {
