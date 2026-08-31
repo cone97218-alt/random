@@ -467,6 +467,7 @@ let _lastParsedData = null;
 function _bindConverter(container) {
     const inputEl   = container.querySelector('#random-st-convert-input');
     const nameEl    = container.querySelector('#random-st-convert-group-name');
+    const rootIdEl  = container.querySelector('#random-st-convert-root-id');
     const depthEl   = container.querySelector('#random-st-convert-depth');
     const roleEl    = container.querySelector('#random-st-convert-role');
     const prevBtn   = container.querySelector('#random-st-convert-preview-btn');
@@ -485,9 +486,8 @@ function _bindConverter(container) {
             return;
         }
 
-        const rawStartIndex = container.querySelector('#random-setting-converter-start-index')?.value?.trim();
-        const startIndex = rawStartIndex ? Number(rawStartIndex) : null;
-        const result = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);
+        const customRootId = rootIdEl?.value?.trim() || container.querySelector('#random-setting-converter-start-index')?.value?.trim() || null;
+        const result = convertStRandomMacros(text, nameEl?.value?.trim(), customRootId);
         if (!result.macros.length) {
             showToast('未检测到有效的 {{random::...}} 语法结构', 'info');
             return;
@@ -505,11 +505,10 @@ function _bindConverter(container) {
             return;
         }
 
-        const rawStartIndex = container.querySelector('#random-setting-converter-start-index')?.value?.trim();
-        const startIndex = rawStartIndex ? Number(rawStartIndex) : null;
+        const customRootId = rootIdEl?.value?.trim() || container.querySelector('#random-setting-converter-start-index')?.value?.trim() || null;
         let parsed = _lastParsedData;
         if (!parsed || parsed.template === '') {
-            parsed = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);
+            parsed = convertStRandomMacros(text, nameEl?.value?.trim(), customRootId);
         }
 
         if (!parsed.macros.length) {
@@ -537,6 +536,7 @@ function _bindConverter(container) {
         // Clear preview & input
         if (inputEl) inputEl.value = '';
         if (nameEl) nameEl.value = '';
+        if (rootIdEl) rootIdEl.value = '';
         if (cardEl) cardEl.style.display = 'none';
         _lastParsedData = null;
     });

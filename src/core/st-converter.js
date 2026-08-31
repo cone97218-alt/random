@@ -199,7 +199,7 @@ export function getNextAvailableRootIndex() {
  * @param {string} [suggestedGroupName]
  * @returns {{ template: string, macros: Array<Object>, groupName: string, maxDepth: number }}
  */
-export function convertStRandomMacros(text, suggestedGroupName = '', startRootNumber = null) {
+export function convertStRandomMacros(text, suggestedGroupName = '', customRootIdOrStart = null) {
     if (!text || typeof text !== 'string') {
         return { template: '', macros: [], groupName: suggestedGroupName || '酒馆宏转换组', maxDepth: 0 };
     }
@@ -300,10 +300,12 @@ export function convertStRandomMacros(text, suggestedGroupName = '', startRootNu
 
     // 3. Option-Indexed Hierarchical ID Assignment:
     // When sub-macros appear inside Option K of Root Macro, they become Prefix-K-1, Prefix-K-2...
-    // e.g. Root 1, Option 11 -> {{random_1-11-1}}
-    const baseStart = Number(startRootNumber) > 0
-        ? Number(startRootNumber)
-        : getNextAvailableRootIndex();
+    // e.g. Root "nsfw", Option 11 -> {{random_nsfw-11-1}}
+    const trimmedCustom = customRootIdOrStart !== null && customRootIdOrStart !== undefined
+        ? String(customRootIdOrStart).trim()
+        : '';
+    const isNumericCustom = trimmedCustom !== '' && !isNaN(Number(trimmedCustom)) && Number(trimmedCustom) > 0;
+    const baseStart = isNumericCustom ? Number(trimmedCustom) : getNextAvailableRootIndex();
     let rootCounter = baseStart;
     const idMap = {};
 
@@ -325,8 +327,13 @@ export function convertStRandomMacros(text, suggestedGroupName = '', startRootNu
         });
     }
 
-    templateRootTempIds.forEach(rootTempId => {
-        const rootId = String(rootCounter++);
+    templateRootTempIds.forEach((rootTempId, idx) => {
+        let rootId;
+        if (trimmedCustom !== '' && !isNumericCustom) {
+            rootId = templateRootTempIds.length === 1 ? trimmedCustom : `${trimmedCustom}_${idx + 1}`;
+        } else {
+            rootId = String(rootCounter++);
+        }
         assignOptionIndexedIds(rootTempId, rootId, 1);
     });
 
