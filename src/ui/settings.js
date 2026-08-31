@@ -485,7 +485,8 @@ function _bindConverter(container) {
             return;
         }
 
-        const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value) || 1;
+        const rawStartIndex = container.querySelector('#random-setting-converter-start-index')?.value?.trim();
+        const startIndex = rawStartIndex ? Number(rawStartIndex) : null;
         const result = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);
         if (!result.macros.length) {
             showToast('未检测到有效的 {{random::...}} 语法结构', 'info');
@@ -504,7 +505,8 @@ function _bindConverter(container) {
             return;
         }
 
-        const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value) || 1;
+        const rawStartIndex = container.querySelector('#random-setting-converter-start-index')?.value?.trim();
+        const startIndex = rawStartIndex ? Number(rawStartIndex) : null;
         let parsed = _lastParsedData;
         if (!parsed || parsed.template === '') {
             parsed = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);

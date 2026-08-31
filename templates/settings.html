@@ -180,11 +180,11 @@
             <div class="random-settings-row">
                 <label class="random-settings-label">
                     <span>酒馆宏导入起始序号</span>
-                    <small class="random-settings-hint" style="display:block; font-size:0.82em; color:var(--random-text-muted);">导入酒馆宏时的根宏编号（默认 1，将生成 1, 1-1, 1-2 等）</small>
+                    <small class="random-settings-hint" style="display:block; font-size:0.82em; color:var(--random-text-muted);">导入酒馆宏时的根宏编号（留空自动自增避重，避免覆盖已有宏）</small>
                 </label>
                 <div class="random-settings-control">
                     <input type="number" class="random-input random-input--narrow" id="random-setting-converter-start-index"
-                        min="1" step="1" value="1" placeholder="1" />
+                        min="1" step="1" value="" placeholder="自动自增" />
                 </div>
             </div>
         </div>

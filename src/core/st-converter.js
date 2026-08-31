@@ -9,7 +9,7 @@
  */
 
 import { generateId } from '../utils/dom.js';
-import { getAllMacros, saveMacro, saveGroup } from './storage.js';
+import { getAllMacros, getAllGroups, saveMacro, saveGroup } from './storage.js';
 
 /**
  * Check if a substring at index starts with any random macro opening tag.
@@ -158,14 +158,36 @@ export function splitInnermostOptions(innerContent) {
  */
 export function getNextAvailableRootIndex() {
     const existingMacros = getAllMacros();
+    const existingGroups = getAllGroups();
     let maxIndex = 0;
+
+    // 1. Check all macro IDs
     existingMacros.forEach(m => {
-        const match = String(m.id).match(/^(\d+)/);
+        const str = String(m.id || '').trim();
+        const match = str.match(/^(\d+)/);
         if (match) {
             const num = parseInt(match[1], 10);
-            if (num > maxIndex) maxIndex = num;
+            if (!isNaN(num) && num > maxIndex) maxIndex = num;
         }
     });
+
+    // 2. Check all group templates & referenced macros
+    existingGroups.forEach(g => {
+        (g.macros || []).forEach(mid => {
+            const str = String(mid || '').trim();
+            const match = str.match(/^(\d+)/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (!isNaN(num) && num > maxIndex) maxIndex = num;
+            }
+        });
+        const templateMatches = [...(g.template || '').matchAll(/\{\{random_(\d+)[^}]*\}\}/gi)];
+        templateMatches.forEach(tm => {
+            const num = parseInt(tm[1], 10);
+            if (!isNaN(num) && num > maxIndex) maxIndex = num;
+        });
+    });
+
     return maxIndex + 1;
 }
 
