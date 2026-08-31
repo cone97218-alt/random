@@ -14,6 +14,7 @@ import {
     getGroupChatState, saveChatState, getSettings,
 } from '../core/storage.js';
 import { resolveGroupTemplate, rollMacros, previewTemplate } from '../core/macro-engine.js';
+import { clearGroupInjection } from '../core/injection.js';
 import { generateId, showToast, confirmDialog, escapeHtml } from '../utils/dom.js';
 
 let _container = null;
@@ -21,6 +22,7 @@ let _editingGroupId = null;   // null = new group
 let _editingMacroId = null;   // null = new macro
 let _groupMacros   = [];      // macros being edited in the group modal
 let _macroOptions  = [];      // options being edited in the macro modal
+let _showMacroTags = false;   // whether tag column is displayed in macro modal
 let _rendered = false;
 const _collapsedGroupIds = new Set(); // set of collapsed group IDs
 const _expandedGroupMacroPills = new Set(); // set of group IDs where all nested macros are expanded in card view
@@ -129,13 +131,14 @@ function _buildGroupCard(group) {
                 </button>
             </div>
         </div>
+        <div class="random-group-card-preview">${escapeHtml(preview)}</div>
         <div class="random-group-card-body" style="${isCollapsed ? 'display:none;' : ''}">
-            <div class="random-group-card-preview">${escapeHtml(preview)}</div>
             <div class="random-group-card-macros" id="random-gc-macros-${group.id}">
                 ${_buildMacroChips(group, groupState, pinnedMacros)}
             </div>
             <div class="random-group-card-meta">
                 <span><i class="fa-solid fa-arrow-down-1-9"></i> 深度 ${group.injectionDepth ?? 4}</span>
+                <span><i class="fa-solid fa-arrow-down-short-wide"></i> 顺序 ${group.injectionOrder ?? 0}</span>
                 <span><i class="fa-solid fa-user-tag"></i> ${_roleLabel(group.injectionRole)}</span>
                 ${_lifecycleMeta(group)}
             </div>
@@ -167,6 +170,9 @@ function _buildGroupCard(group) {
     card.querySelector('.random-gc-enable').addEventListener('change', e => {
         group.enabled = e.target.checked;
         saveGroup(group);
+        if (!group.enabled) {
+            clearGroupInjection(group.id);
+        }
         card.classList.toggle('random-group-card--disabled', !group.enabled);
     });
     
@@ -214,6 +220,7 @@ function _buildGroupCard(group) {
     // Delete button
     card.querySelector('.random-gc-delete').addEventListener('click', () => {
         if (!confirmDialog(`确认删除宏配置组「${group.name}」？`)) return;
+        clearGroupInjection(group.id);
         deleteGroup(group.id);
         refreshGroupList();
         showToast(`已删除: ${group.name}`, 'info');
@@ -414,6 +421,7 @@ function openGroupModal(groupId) {
     _setCheck(modal, '#random-gm-enabled',   group.enabled !== false);
     _setVal(modal, '#random-gm-role',        String(group.injectionRole ?? 0));
     _setVal(modal, '#random-gm-depth',       group.injectionDepth ?? 4);
+    _setVal(modal, '#random-gm-order',       group.injectionOrder ?? 0);
     _setVal(modal, '#random-gm-template',    group.template || '');
     
     const useGlobal = group.lifecycle?.useGlobal !== false;
@@ -423,6 +431,9 @@ function openGroupModal(groupId) {
     const lc = group.lifecycle || {};
     _setVal(modal, '#random-gm-every-x', lc.everyXRounds ?? '');
     _setVal(modal, '#random-gm-keep-y',  lc.keepYRounds  ?? '');
+
+    const detailsEl = modal.querySelector('.random-gm-details');
+    if (detailsEl) detailsEl.open = isNew;
 
     // Reset search & batch on open
     const searchBar = modal.querySelector('#random-gm-search-bar');
@@ -457,6 +468,7 @@ function _defaultGroup() {
         scope: 'global',
         enabled: true,
         injectionDepth: 4,
+        injectionOrder: 0,
         injectionRole: 0,
         template: '',
         macros: [],
@@ -1222,6 +1234,7 @@ function _saveGroupFromModal(modal) {
         enabled:        modal.querySelector('#random-gm-enabled')?.checked !== false,
         injectionRole:  Number(modal.querySelector('#random-gm-role')?.value ?? 0),
         injectionDepth: Number(modal.querySelector('#random-gm-depth')?.value ?? 4),
+        injectionOrder: Number(modal.querySelector('#random-gm-order')?.value ?? 0),
         template:       templateText,
         macros:         _groupMacros.map(m => m.id),
         lifecycle: {
@@ -1234,6 +1247,9 @@ function _saveGroupFromModal(modal) {
     // Save all macros in this group
     _groupMacros.forEach(m => saveMacro(m));
     saveGroup(group);
+    if (!group.enabled) {
+        clearGroupInjection(group.id);
+    }
     
     modal.style.display = 'none';
     refreshGroupList();
@@ -1261,17 +1277,34 @@ function openMacroModal(macroId, addToGroup) {
         : (getMacroById(macroId) || _groupMacros.find(m => m.id === macroId) || { id: macroId, triggerProbability: 100, options: [] });
     
     _macroOptions = (macro.options || []).map(o => ({ ...o }));
+    _showMacroTags = _macroOptions.some(o => o.tag && String(o.tag).trim() !== '');
     
     _setVal(modal, '#random-mm-id',   macro.id || '');
     _setVal(modal, '#random-mm-prob', macro.triggerProbability ?? 100);
     
     modal.querySelector('#random-mm-id').readOnly = !isNew && !!macroId;
     
+    _updateToggleTagBtn(modal);
     _renderOptionList(modal);
     modal.style.display = 'flex';
     
     // Store addToGroup flag
     modal.dataset.addToGroup = addToGroup ? '1' : '0';
+}
+
+function _updateToggleTagBtn(modal) {
+    const btn = modal.querySelector('#random-mm-toggle-tag-btn');
+    const textEl = modal.querySelector('#random-mm-toggle-tag-text');
+    if (!btn) return;
+    if (_showMacroTags) {
+        btn.classList.add('random-btn--active');
+        if (textEl) textEl.textContent = '隐藏标签';
+        btn.title = '隐藏标签列';
+    } else {
+        btn.classList.remove('random-btn--active');
+        if (textEl) textEl.textContent = '标签';
+        btn.title = '显示标签列';
+    }
 }
 
 function _bindMacroModal(container) {
@@ -1285,6 +1318,12 @@ function _bindMacroModal(container) {
         modal.style.display = 'none';
     });
     
+    modal.querySelector('#random-mm-toggle-tag-btn')?.addEventListener('click', () => {
+        _showMacroTags = !_showMacroTags;
+        _updateToggleTagBtn(modal);
+        _renderOptionList(modal);
+    });
+
     modal.querySelector('#random-mm-add-option-btn')?.addEventListener('click', () => {
         _macroOptions.push({ text: '', weight: 1, tag: '' });
         _renderOptionList(modal);
@@ -1308,10 +1347,14 @@ function _renderOptionList(modal) {
     _macroOptions.forEach((opt, idx) => {
         const row = document.createElement('div');
         row.className = 'random-option-row';
+        const tagInputHtml = _showMacroTags
+            ? `<input type="text" class="random-input random-opt-tag" value="${escapeHtml(opt.tag || '')}" placeholder="标签(可选)" title="标签(可选)" />`
+            : '';
+
         row.innerHTML = `
             <input type="text"   class="random-input random-opt-text"   value="${escapeHtml(opt.text || '')}"  placeholder="选项内容（支持嵌套 {{random_xxx}}）" />
-            <input type="number" class="random-input random-opt-weight random-input--narrow" value="${opt.weight ?? 1}" min="0" step="1" title="权重" />
-            <input type="text"   class="random-input random-opt-tag random-input--narrow"    value="${escapeHtml(opt.tag || '')}" placeholder="标签(可选)" />
+            <input type="number" class="random-input random-opt-weight" value="${opt.weight ?? 1}" min="0" step="1" title="抽取权重" placeholder="权重" />
+            ${tagInputHtml}
             <button class="random-icon-btn--xs random-opt-delete random-icon-btn--danger" title="删除">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -1323,9 +1366,11 @@ function _renderOptionList(modal) {
         row.querySelector('.random-opt-weight').addEventListener('input', e => {
             _macroOptions[idx].weight = Number(e.target.value) || 1;
         });
-        row.querySelector('.random-opt-tag').addEventListener('input', e => {
-            _macroOptions[idx].tag = e.target.value;
-        });
+        if (_showMacroTags) {
+            row.querySelector('.random-opt-tag')?.addEventListener('input', e => {
+                _macroOptions[idx].tag = e.target.value;
+            });
+        }
         row.querySelector('.random-opt-delete').addEventListener('click', () => {
             _macroOptions.splice(idx, 1);
             _renderOptionList(modal);

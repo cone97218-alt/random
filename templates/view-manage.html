@@ -34,69 +34,88 @@
         </div>
         <div class="random-modal-body">
 
-            <!-- Group name -->
-            <div class="random-field">
-                <label class="random-field-label">组名称</label>
-                <input type="text" class="random-input" id="random-gm-name" placeholder="例如：天气系统" />
-            </div>
+            <!-- ── Group Basic & Injection Settings Collapsible ── -->
+            <details class="random-gm-details">
+                <summary class="random-gm-summary">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>基础与注入配置</span>
+                </summary>
+                <div class="random-gm-details-body">
+                    <!-- Group name -->
+                    <div class="random-field">
+                        <label class="random-field-label">组名称</label>
+                        <input type="text" class="random-input" id="random-gm-name" placeholder="例如：天气系统" />
+                    </div>
 
-            <!-- Scope -->
-            <div class="random-field">
-                <label class="random-field-label">作用范围</label>
-                <select class="random-select" id="random-gm-scope">
-                    <option value="global">全局</option>
-                    <option value="character">当前角色卡</option>
-                </select>
-            </div>
+                    <!-- Scope & Enabled -->
+                    <div class="random-field-row" style="display:flex; gap:12px; align-items:flex-end;">
+                        <div class="random-field" style="flex:1;">
+                            <label class="random-field-label">作用范围</label>
+                            <select class="random-select" id="random-gm-scope">
+                                <option value="global">全局</option>
+                                <option value="character">当前角色卡</option>
+                            </select>
+                        </div>
+                        <div class="random-field random-field--inline" style="padding-bottom:6px;">
+                            <label class="random-field-label">启用</label>
+                            <label class="random-toggle">
+                                <input type="checkbox" id="random-gm-enabled" checked />
+                                <span class="random-toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
 
-            <!-- Enabled -->
-            <div class="random-field random-field--inline">
-                <label class="random-field-label">启用</label>
-                <label class="random-toggle">
-                    <input type="checkbox" id="random-gm-enabled" checked />
-                    <span class="random-toggle-slider"></span>
-                </label>
-            </div>
+                    <!-- Injection Role -->
+                    <div class="random-field">
+                        <label class="random-field-label">注入身份</label>
+                        <select class="random-select" id="random-gm-role">
+                            <option value="0">System</option>
+                            <option value="1">User</option>
+                            <option value="2">Assistant</option>
+                        </select>
+                    </div>
 
-            <!-- Injection Role -->
-            <div class="random-field">
-                <label class="random-field-label">注入身份</label>
-                <select class="random-select" id="random-gm-role">
-                    <option value="0">System</option>
-                    <option value="1">User</option>
-                    <option value="2">Assistant</option>
-                </select>
-            </div>
+                    <!-- Injection Depth & Order -->
+                    <div class="random-field-row" style="display:flex; gap:12px;">
+                        <div class="random-field" style="flex:1;">
+                            <label class="random-field-label">注入深度</label>
+                            <input type="number" class="random-input random-input--narrow" id="random-gm-depth"
+                                min="0" step="1" value="4" />
+                            <span class="random-field-hint">从末尾往前数，0=末尾</span>
+                        </div>
+                        <div class="random-field" style="flex:1;">
+                            <label class="random-field-label">注入顺序</label>
+                            <input type="number" class="random-input random-input--narrow" id="random-gm-order"
+                                min="0" step="1" value="0" placeholder="0" />
+                            <span class="random-field-hint">数字越小越靠前</span>
+                        </div>
+                    </div>
 
-            <!-- Injection Depth -->
-            <div class="random-field">
-                <label class="random-field-label">注入深度</label>
-                <input type="number" class="random-input random-input--narrow" id="random-gm-depth"
-                    min="0" step="1" value="4" />
-                <span class="random-field-hint">从末尾往前数，0=末尾</span>
-            </div>
+                    <!-- Lifecycle override -->
+                    <div class="random-field random-field--inline">
+                        <label class="random-field-label">使用全局周期设置</label>
+                        <label class="random-toggle">
+                            <input type="checkbox" id="random-gm-lifecycle-global" checked />
+                            <span class="random-toggle-slider"></span>
+                        </label>
+                    </div>
 
-            <!-- Lifecycle override -->
-            <div class="random-field random-field--inline">
-                <label class="random-field-label">使用全局周期设置</label>
-                <label class="random-toggle">
-                    <input type="checkbox" id="random-gm-lifecycle-global" checked />
-                    <span class="random-toggle-slider"></span>
-                </label>
-            </div>
-
-            <div id="random-gm-lifecycle-custom" style="display:none;">
-                <div class="random-field">
-                    <label class="random-field-label">每 x 轮注入一次</label>
-                    <input type="number" class="random-input random-input--narrow" id="random-gm-every-x"
-                        min="1" step="1" placeholder="留空=每轮" />
+                    <div id="random-gm-lifecycle-custom" style="display:none;">
+                        <div class="random-field-row" style="display:flex; gap:12px;">
+                            <div class="random-field" style="flex:1;">
+                                <label class="random-field-label">每 x 轮注入一次</label>
+                                <input type="number" class="random-input random-input--narrow" id="random-gm-every-x"
+                                    min="1" step="1" placeholder="留空=每轮" />
+                            </div>
+                            <div class="random-field" style="flex:1;">
+                                <label class="random-field-label">注入后保持 y 轮</label>
+                                <input type="number" class="random-input random-input--narrow" id="random-gm-keep-y"
+                                    min="0" step="1" placeholder="留空=不保持" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="random-field">
-                    <label class="random-field-label">注入后保持 y 轮</label>
-                    <input type="number" class="random-input random-input--narrow" id="random-gm-keep-y"
-                        min="0" step="1" placeholder="留空=不保持" />
-                </div>
-            </div>
+            </details>
 
             <!-- Template -->
             <div class="random-field">
@@ -214,10 +233,16 @@
             <div class="random-field">
                 <div class="random-field-label-row">
                     <label class="random-field-label">选项列表</label>
-                    <button class="random-btn random-btn--sm" id="random-mm-add-option-btn">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>添加选项</span>
-                    </button>
+                    <div class="random-field-label-actions">
+                        <button class="random-btn random-btn--sm random-btn--ghost" id="random-mm-toggle-tag-btn" type="button" title="显示或隐藏标签列">
+                            <i class="fa-solid fa-tags"></i>
+                            <span id="random-mm-toggle-tag-text">标签</span>
+                        </button>
+                        <button class="random-btn random-btn--sm" id="random-mm-add-option-btn" type="button">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>添加选项</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="random-option-list" id="random-mm-option-list">
                     <!-- Options rendered here -->

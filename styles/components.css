@@ -381,7 +381,7 @@
     border-style: dashed;
 }
 .random-group-card--collapsed {
-    gap:          0;
+    gap:          6px;
 }
 .random-group-card-header {
     display:        flex;
@@ -486,7 +486,7 @@
     transition:     border-color var(--random-transition);
 }
 .random-macro-chip--pinned {
-    border-color:  var(--random-accent);
+    border-color:  var(--SmartThemeQuoteColor, var(--random-quote-color, var(--random-accent)));
     background:    rgba(180,155,120,0.12);
 }
 .random-macro-chip--root {
@@ -533,7 +533,7 @@
     min-width:      0;
 }
 .random-macro-chip-pin.active {
-    color: var(--random-accent);
+    color: var(--SmartThemeQuoteColor, var(--random-quote-color, var(--random-danger))) !important;
 }
 .random-macro-expand-btn,
 .random-macro-collapse-btn {
@@ -647,6 +647,12 @@
     gap:            8px;
     white-space:    nowrap;
 }
+.random-field-label-actions {
+    display:        flex;
+    flex-direction: row;
+    align-items:    center;
+    gap:            6px;
+}
 
 /* ── Option Rows ─────────────────────────────────────── */
 .random-option-list,
@@ -663,8 +669,76 @@
     white-space:    nowrap;
 }
 .random-option-row .random-input.random-opt-text {
-    flex: 1;
-    white-space: nowrap;
+    flex:           1;
+    min-width:      0;
+    white-space:    nowrap;
+}
+.random-opt-weight {
+    width:          34px !important;
+    min-width:      34px !important;
+    max-width:      38px !important;
+    padding:        3px 1px !important;
+    text-align:     center;
+    background:     var(--random-input-bg) !important;
+    border:         1px solid var(--random-border) !important;
+    border-radius:  var(--random-radius-sm);
+    font-size:      0.82em;
+    flex-shrink:    0;
+    -moz-appearance: textfield;
+}
+.random-opt-weight::-webkit-inner-spin-button,
+.random-opt-weight::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.random-opt-tag {
+    width:          75px !important;
+    min-width:      60px !important;
+    font-size:      0.82em;
+    padding:        4px 6px !important;
+    flex-shrink:    0;
+}
+
+/* ── Group modal config details ──────────────────────── */
+.random-gm-details {
+    border:         1px solid var(--random-border);
+    border-radius:  var(--random-radius-sm);
+    background:     var(--random-bg-panel);
+    transition:     border-color var(--random-transition);
+    margin-bottom:  10px;
+}
+.random-gm-summary {
+    display:        flex;
+    align-items:    center;
+    gap:            8px;
+    padding:        9px 12px;
+    cursor:         pointer;
+    font-weight:    600;
+    font-size:      0.84em;
+    color:          var(--random-accent);
+    list-style:     none;
+    user-select:    none;
+    white-space:    nowrap;
+}
+.random-gm-summary::-webkit-details-marker { display: none; }
+.random-gm-summary::after {
+    content:        '\f078';
+    font-family:    'Font Awesome 6 Free';
+    font-weight:    900;
+    font-size:      0.72em;
+    margin-left:    auto;
+    transition:     transform 0.2s;
+    color:          var(--random-text-muted);
+}
+.random-gm-details[open] > .random-gm-summary::after {
+    transform: rotate(180deg);
+}
+.random-gm-details-body {
+    padding:        10px 12px 12px;
+    border-top:     1px solid var(--random-border);
+    display:        flex;
+    flex-direction: column;
+    gap:            8px;
 }
 
 /* ── Group modal macro list & search ─────────────────── */
@@ -1385,14 +1459,22 @@
     box-sizing:     border-box;
 }
 .random-opt-edit-weight {
-    width:          46px !important;
-    padding:        4px 4px !important;
+    width:          34px !important;
+    min-width:      34px !important;
+    max-width:      38px !important;
+    padding:        3px 1px !important;
     text-align:     center;
     background:     var(--random-input-bg) !important;
     border:         1px solid var(--random-border) !important;
     border-radius:  var(--random-radius-sm);
     font-size:      0.82em;
     flex-shrink:    0;
+    -moz-appearance: textfield;
+}
+.random-opt-edit-weight::-webkit-inner-spin-button,
+.random-opt-edit-weight::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 .random-option-edit-text-wrap {
     flex:           1;

@@ -65,6 +65,7 @@ const MORANDI_BEIGE = {
     '--random-accent':      'rgba(176, 152, 125, 1)',
     '--random-accent-hover':'rgba(155, 130, 102, 1)',
     '--random-danger':      'rgba(185, 110, 100, 1)',
+    '--random-quote-color': 'rgba(185, 110, 100, 1)',
     '--random-success':     'rgba(120, 155, 120, 1)',
     '--random-tag-bg':      'rgba(220, 208, 192, 1)',
     '--random-input-bg':    'rgba(250, 245, 238, 1)',
@@ -79,6 +80,7 @@ const MORANDI_GRAY = {
     '--random-accent':      'rgba(130, 145, 165, 1)',
     '--random-accent-hover':'rgba(108, 125, 148, 1)',
     '--random-danger':      'rgba(165, 105, 115, 1)',
+    '--random-quote-color': 'rgba(165, 105, 115, 1)',
     '--random-success':     'rgba(110, 145, 130, 1)',
     '--random-tag-bg':      'rgba(205, 210, 218, 1)',
     '--random-input-bg':    'rgba(240, 242, 245, 1)',
@@ -119,6 +121,7 @@ export function applyFollowTheme(panelEl) {
     panelEl.style.setProperty('--random-accent',      `rgba(${emRgb}, 1)`);
     panelEl.style.setProperty('--random-accent-hover',`var(--SmartThemeUnderlineColor)`);
     panelEl.style.setProperty('--random-danger',      `var(--SmartThemeQuoteColor)`);
+    panelEl.style.setProperty('--random-quote-color', `var(--SmartThemeQuoteColor)`);
     panelEl.style.setProperty('--random-success',     `rgba(${emRgb}, 0.8)`);
     panelEl.style.setProperty('--random-tag-bg',      `rgba(${borderRgb}, 1)`);
     panelEl.style.setProperty('--random-input-bg',    `rgba(${blurRgb}, 1)`);

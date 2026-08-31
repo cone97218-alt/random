@@ -366,6 +366,7 @@ export function importConvertedGroup({
     template,
     macros,
     injectionDepth = 4,
+    injectionOrder = 0,
     injectionRole = 0,
     scope = 'global',
 }) {
@@ -389,6 +390,7 @@ export function importConvertedGroup({
         scope: scope || 'global',
         enabled: true,
         injectionDepth: Number(injectionDepth) ?? 4,
+        injectionOrder: Number(injectionOrder) ?? 0,
         injectionRole: Number(injectionRole) ?? 0,
         template: template.trim(),
         macros: macros.map(m => m.id),

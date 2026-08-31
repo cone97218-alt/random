@@ -88,6 +88,26 @@ function checkLifecycle(groupState, lifecycle) {
 
 // ── Main injection handler ────────────────────────────────────────────────────
 
+// ── Active Prompt Key Registry (O(1) tracking) ────────────────────────────────
+// Tracks currently active injected keys by group: groupId -> promptKey
+const _injectedGroupKeys = new Map();
+
+/**
+ * Clear injection prompt(s) for a specific group from SillyTavern context.
+ * @param {string} groupId
+ */
+export function clearGroupInjection(groupId) {
+    if (!groupId) return;
+    const setPrompt = getSetExtensionPromptFn();
+    const prevKey = _injectedGroupKeys.get(groupId);
+    if (prevKey) {
+        if (setPrompt) {
+            try { setPrompt(prevKey, '', -1, 0); } catch {}
+        }
+        _injectedGroupKeys.delete(groupId);
+    }
+}
+
 /**
  * Called on GENERATION_STARTED / GENERATE_BEFORE_COMBINE_PROMPTS.
  * For each active enabled group, compute the injection text and register it
@@ -101,7 +121,16 @@ export function injectRandomMacros() {
     }
 
     const activeGroups = getActiveGroups();
+    const activeGroupIds = new Set(activeGroups.map(g => g.id));
     
+    // O(k) cleanup: only check groups previously registered by this extension
+    for (const [gid, key] of _injectedGroupKeys.entries()) {
+        if (!activeGroupIds.has(gid)) {
+            try { setPrompt(key, '', -1, 0); } catch {}
+            _injectedGroupKeys.delete(gid);
+        }
+    }
+
     if (activeGroups.length === 0) {
         return;
     }
@@ -128,15 +157,30 @@ export function injectRandomMacros() {
  * @returns {boolean} Whether content was injected
  */
 function injectGroup(group, setPrompt) {
+    if (!group || group.enabled === false) {
+        clearGroupInjection(group?.id);
+        return false;
+    }
+
     const groupState = getGroupChatState(group.id);
     const lifecycle = getEffectiveLifecycle(group);
     const { shouldInject, shouldReroll } = checkLifecycle(groupState, lifecycle);
     
-    const promptKey = `random_group_${group.id}`;
+    const order = Number.isFinite(Number(group.injectionOrder))
+        ? Math.max(0, Math.floor(Number(group.injectionOrder)))
+        : 0;
+    const orderStr = String(order).padStart(5, '0');
+    const promptKey = `random_group_${orderStr}_${group.id}`;
+
+    // Clean up if order or key changed for this group
+    const prevKey = _injectedGroupKeys.get(group.id);
+    if (prevKey && prevKey !== promptKey) {
+        try { setPrompt(prevKey, '', -1, 0); } catch {}
+    }
 
     if (!shouldInject) {
         // Clear any previous injection for this group
-        setPrompt(promptKey, '', -1, 0);
+        clearGroupInjection(group.id);
         console.debug(`[Random Injection] Group "${group.name}": skipped by lifecycle rule`);
         return false;
     }
@@ -149,7 +193,7 @@ function injectGroup(group, setPrompt) {
     }
     
     if (!resolved || !resolved.trim()) {
-        setPrompt(promptKey, '', -1, 0);
+        clearGroupInjection(group.id);
         console.debug(`[Random Injection] Group "${group.name}": resolved text is empty`);
         return false;
     }
@@ -177,7 +221,8 @@ function injectGroup(group, setPrompt) {
             false,   // scan
             roleNum
         );
-        console.log(`[Random Injection] ✅ Injected group "${group.name}" (depth=${depth}, role=${roleNum}, pos=${position}):\n"${resolved.trim()}"`);
+        _injectedGroupKeys.set(group.id, promptKey);
+        console.log(`[Random Injection] ✅ Injected group "${group.name}" (depth=${depth}, order=${order}, role=${roleNum}, pos=${position}):\n"${resolved.trim()}"`);
         return true;
     } catch (e) {
         console.warn('[Random Injection] setExtensionPrompt failed:', e);
@@ -205,13 +250,12 @@ function mapRole(role) {
  */
 export function clearAllInjections() {
     const setPrompt = getSetExtensionPromptFn();
-    if (!setPrompt) return;
-    const groups = getActiveGroups();
-    for (const group of groups) {
-        try {
-            setPrompt(`random_group_${group.id}`, '', -1, 0);
-        } catch {}
+    if (setPrompt) {
+        for (const key of _injectedGroupKeys.values()) {
+            try { setPrompt(key, '', -1, 0); } catch {}
+        }
     }
+    _injectedGroupKeys.clear();
 }
 
 /**

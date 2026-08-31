@@ -205,6 +205,7 @@ export function deleteMacro(id) {
  * @property {string} scope - 'global' | 'character:<charId>'
  * @property {boolean} enabled
  * @property {number} injectionDepth
+ * @property {number} [injectionOrder=0] - Sort order for prompt injection (lower numbers injected first)
  * @property {number} injectionRole - 0=system, 1=user, 2=assistant
  * @property {string} template - Injection text with {{random_xxx}} placeholders
  * @property {string[]} macros - Array of macro IDs referenced by this group

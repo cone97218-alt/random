@@ -416,6 +416,7 @@ function _importOptions(container) {
             enabled: true,
             injectionRole: Number(structured.injectionRole ?? 0),
             injectionDepth: Number(structured.injectionDepth ?? 4),
+            injectionOrder: Number(structured.injectionOrder ?? 0),
             template: structured.template || '',
             macros: structured.macros.map(m => m.id),
             lifecycle: { useGlobal: true, everyXRounds: null, keepYRounds: null },

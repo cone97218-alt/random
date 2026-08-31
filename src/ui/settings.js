@@ -21,7 +21,10 @@ let _container = null;
 // ── Entry ─────────────────────────────────────────────────────────────────────
 
 export async function renderSettingsView(container) {
-    if (_rendered) return;
+    if (_rendered) {
+        _loadValues(container);
+        return;
+    }
     _rendered = true;
     _container = container;
 
@@ -53,11 +56,40 @@ function _loadValues(container) {
     const avoidRepCheck = container.querySelector('#random-setting-avoid-repetition');
     if (avoidRepCheck) avoidRepCheck.checked = misc.avoidRepetition !== false;
     _val(container, '#random-setting-converter-start-index', misc.converterStartIndex ?? 1);
+
+    // Collapsible sections (default collapsed, persisted in settings & localStorage)
+    let openSections = s.settingsOpenSections;
+    if (!openSections) {
+        try {
+            const stored = localStorage.getItem('random_settings_open_sections');
+            if (stored) openSections = JSON.parse(stored);
+        } catch (_) {}
+    }
+    const openSet = new Set(Array.isArray(openSections) ? openSections : []);
+    container.querySelectorAll('.random-settings-details').forEach(d => {
+        const section = d.dataset.section;
+        d.open = section ? openSet.has(section) : false;
+    });
 }
 
 // ── Bind events ───────────────────────────────────────────────────────────────
 
 function _bindEvents(container) {
+    // Collapsible sections toggle persistence
+    container.querySelectorAll('.random-settings-details').forEach(details => {
+        details.addEventListener('toggle', () => {
+            const s = getSettings();
+            const openSections = [...container.querySelectorAll('.random-settings-details')]
+                .filter(d => d.open && d.dataset.section)
+                .map(d => d.dataset.section);
+            s.settingsOpenSections = openSections;
+            saveSettings();
+            try {
+                localStorage.setItem('random_settings_open_sections', JSON.stringify(openSections));
+            } catch (_) {}
+        });
+    });
+
     container.querySelector('#random-settings-save-btn').addEventListener('click', () => {
         _save(container);
     });
