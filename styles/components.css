@@ -1324,6 +1324,8 @@
     flex-direction: row;
     align-items:    flex-start;
     gap:            10px;
+    width:          100%;
+    max-width:      100%;
     box-sizing:     border-box;
     white-space:    pre-wrap;
     word-break:     break-word;
@@ -1334,11 +1336,11 @@
     margin-right:   0;
 }
 .random-gen-bubble--user {
-    align-self:      flex-end;
-    margin-left:     auto;
-    flex-direction:  row;
+    align-self:     stretch;
+    width:          100%;
+    margin-left:    0;
+    flex-direction: row;
     justify-content: flex-end;
-    max-width:       85%;
 }
 .random-gen-bubble-avatar {
     width:           28px;
@@ -1361,9 +1363,7 @@
     min-width:       0;
 }
 .random-gen-bubble--user .random-gen-bubble-content {
-    flex:            0 1 auto;
-    align-items:     flex-end;
-    max-width:       100%;
+    align-items:     stretch;
 }
 .random-gen-bubble-text {
     padding:         10px 14px;
@@ -1380,10 +1380,9 @@
     background:      var(--random-tag-bg);
     border-radius:   var(--random-radius) 0 var(--random-radius) var(--random-radius);
     border-color:    var(--random-border);
-    width:           fit-content;
-    max-width:       100%;
+    width:           100%;
     box-sizing:      border-box;
-    text-align:      left;
+    text-align:      right;
 }
 .random-gen-bubble-footer {
     display:         flex;
