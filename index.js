@@ -257,7 +257,15 @@ function registerSlashCommands() {
                             macros: parsed.macros,
                         });
                         showToast(`成功解析并导入宏组【${parsed.groupName}】及 ${macroCount} 个关联宏！`, 'success');
-                        return `【酒馆宏转换导入成功】\n• 宏组名称: ${parsed.groupName}\n• 注入模板: ${parsed.template}\n• 拆解宏数量: ${macroCount} 个\n已自动保存至宏列表并立即可用！`;
+
+                        const treeLines = parsed.macros.map(m => {
+                            const indent = '  '.repeat(Math.max(0, (m.level || 1) - 1));
+                            const typeLabel = (m.level || 1) === 1 ? '[根宏]' : `[L${m.level}子宏 (父:宏${m.parentId})]`;
+                            const optPreview = m.options.map(o => o.text).join(' | ');
+                            return `${indent}• 宏 ${m.id} ${typeLabel}: ${optPreview}`;
+                        }).join('\n');
+
+                        return `【酒馆宏转换导入成功】\n• 宏组名称: ${parsed.groupName}\n• 注入模板: ${parsed.template}\n• 嵌套深度: ${parsed.maxDepth || 1} 层 (共 ${macroCount} 个宏)\n${treeLines}\n已自动保存至宏列表并立即可用！`;
                     }
                     case 'test':
                     case 'inject': {

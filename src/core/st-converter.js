@@ -65,103 +65,158 @@ export function splitTopLevelOptions(innerContent) {
  * @param {Set<string>} existingIds
  * @returns {string}
  */
-function generateMacroId(index, existingIds) {
-    let num = index;
-    while (existingIds.has(String(num).toLowerCase())) {
-        num++;
+function getNextSequentialId(counterObj, existingIds) {
+    while (existingIds.has(String(counterObj.val).toLowerCase())) {
+        counterObj.val++;
     }
-    const finalId = String(num);
+    const finalId = String(counterObj.val++);
     existingIds.add(finalId.toLowerCase());
     return finalId;
 }
 
 /**
- * Recursively parse and convert {{random::...}} occurrences in text.
+ * Parse input string into a tree of AST nodes.
  * @param {string} text
- * @param {string} [suggestedGroupName]
- * @returns {{ template: string, macros: Array<{ id: string, triggerProbability: number, options: Array<{ text: string, weight: number }> }>, groupName: string }}
+ * @returns {Array<Object>}
  */
-export function convertStRandomMacros(text, suggestedGroupName = '') {
-    if (!text || typeof text !== 'string') {
-        return { template: '', macros: [], groupName: suggestedGroupName || '酒馆宏转换组' };
-    }
+export function parseToAst(text) {
+    const rootNodes = [];
+    let i = 0;
+    let textBuffer = '';
 
-    const macros = [];
-    const usedIds = new Set(getAllMacros().map(m => String(m.id).toLowerCase()));
-    let macroCounter = 1;
+    while (i < text.length) {
+        const tagMatch = text.slice(i).match(/^\{\{random::/i);
+        if (tagMatch) {
+            if (textBuffer) {
+                rootNodes.push({ type: 'text', value: textBuffer });
+                textBuffer = '';
+            }
+            const tagLen = tagMatch[0].length;
+            let depth = 2; // already inside {{
+            let j = i + tagLen;
+            let contentStart = j;
 
-    /**
-     * Recursively convert a text snippet that may contain {{random::...}}
-     * @param {string} str
-     * @returns {string} Converted string with {{random_xxx}}
-     */
-    function processString(str) {
-        let result = '';
-        let i = 0;
-
-        while (i < str.length) {
-            // Check for {{random::
-            const tagMatch = str.slice(i).match(/^\{\{random::/i);
-            if (tagMatch) {
-                const tagLen = tagMatch[0].length;
-                let depth = 2; // already in {{
-                let j = i + tagLen;
-                let contentStart = j;
-
-                while (j < str.length && depth > 0) {
-                    if (str[j] === '{' && str[j + 1] === '{') {
-                        depth += 2;
-                        j += 2;
-                    } else if (str[j] === '}' && str[j + 1] === '}') {
-                        depth -= 2;
-                        if (depth === 0) break;
-                        j += 2;
-                    } else {
-                        j++;
-                    }
-                }
-
-                if (depth === 0) {
-                    const innerContent = str.slice(contentStart, j);
-                    const rawOptions = splitTopLevelOptions(innerContent);
-
-                    // Recursively process options in case they contain nested {{random::...}}
-                    const processedOptions = rawOptions.map(opt => {
-                        return {
-                            text: processString(opt),
-                            weight: 1,
-                        };
-                    });
-
-                    // Generate numeric ID
-                    const macroId = generateMacroId(macroCounter++, usedIds);
-
-                    macros.push({
-                        id: macroId,
-                        triggerProbability: 100,
-                        options: processedOptions,
-                    });
-
-                    result += `{{random_${macroId}}}`;
-                    i = j + 2; // Skip over the closing }}
-                    continue;
+            while (j < text.length && depth > 0) {
+                if (text[j] === '{' && text[j + 1] === '{') {
+                    depth += 2;
+                    j += 2;
+                } else if (text[j] === '}' && text[j + 1] === '}') {
+                    depth -= 2;
+                    if (depth === 0) break;
+                    j += 2;
+                } else {
+                    j++;
                 }
             }
 
-            result += str[i];
-            i++;
+            if (depth === 0) {
+                const innerContent = text.slice(contentStart, j);
+                const rawOptions = splitTopLevelOptions(innerContent);
+                const macroNode = {
+                    type: 'macro',
+                    raw: text.slice(i, j + 2),
+                    options: rawOptions.map(opt => parseToAst(opt)),
+                };
+                rootNodes.push(macroNode);
+                i = j + 2;
+                continue;
+            }
         }
+        textBuffer += text[i];
+        i++;
+    }
+    if (textBuffer) {
+        rootNodes.push({ type: 'text', value: textBuffer });
+    }
+    return rootNodes;
+}
 
-        return result;
+/**
+ * Top-down hierarchical AST converter for SillyTavern random macros.
+ * Ensures root macros are numbered first (1, 2, ...), followed by child macros,
+ * maintaining crystal-clear tree hierarchy and parent-child linkages.
+ *
+ * @param {string} text
+ * @param {string} [suggestedGroupName]
+ * @returns {{ template: string, macros: Array<Object>, groupName: string, maxDepth: number, tree: Array<Object> }}
+ */
+export function convertStRandomMacros(text, suggestedGroupName = '') {
+    if (!text || typeof text !== 'string') {
+        return { template: '', macros: [], groupName: suggestedGroupName || '酒馆宏转换组', maxDepth: 0, tree: [] };
     }
 
-    const template = processString(text.trim());
-    const groupName = suggestedGroupName.trim() || (macros.length > 0 ? `酒馆宏转换组_${macros[macros.length - 1].id}` : '酒馆宏导入组');
+    const astList = parseToAst(text.trim());
+    const usedIds = new Set(getAllMacros().map(m => String(m.id).toLowerCase()));
+    const counterObj = { val: 1 };
+    const flatMacros = [];
+    let maxDepth = 0;
+
+    // 1. Assign IDs top-down (Breadth-first / Pre-order from root to leaves)
+    function assignIdsTopDown(nodes, level = 1, parentId = null) {
+        if (level > maxDepth) maxDepth = level;
+
+        for (const node of nodes) {
+            if (node.type === 'macro') {
+                node.id = getNextSequentialId(counterObj, usedIds);
+                node.level = level;
+                node.parentId = parentId;
+                node.childrenIds = [];
+
+                if (parentId) {
+                    const parentMacro = flatMacros.find(m => m.id === parentId);
+                    if (parentMacro && !parentMacro.childrenIds.includes(node.id)) {
+                        parentMacro.childrenIds.push(node.id);
+                    }
+                }
+                flatMacros.push(node);
+
+                // Recurse on children options
+                for (const optNodes of node.options) {
+                    assignIdsTopDown(optNodes, level + 1, node.id);
+                }
+            }
+        }
+    }
+
+    assignIdsTopDown(astList, 1, null);
+
+    // 2. Render AST nodes back to converted string with {{random_xxx}}
+    function renderAst(nodes) {
+        let str = '';
+        for (const node of nodes) {
+            if (node.type === 'text') {
+                str += node.value;
+            } else if (node.type === 'macro') {
+                str += `{{random_${node.id}}}`;
+            }
+        }
+        return str;
+    }
+
+    // 3. Format structured macro definitions with rich hierarchy info
+    const macroDefs = flatMacros.map(m => {
+        return {
+            id: m.id,
+            level: m.level,
+            parentId: m.parentId,
+            childrenIds: m.childrenIds || [],
+            triggerProbability: 100,
+            options: m.options.map(optNodes => ({
+                text: renderAst(optNodes),
+                weight: 1,
+            })),
+        };
+    });
+
+    const template = renderAst(astList);
+    const groupName = suggestedGroupName.trim() || (macroDefs.length > 0 ? `酒馆宏转换组_${macroDefs[0].id}` : '酒馆宏导入组');
 
     return {
         template,
-        macros,
+        macros: macroDefs,
         groupName,
+        maxDepth,
+        tree: astList,
     };
 }
 

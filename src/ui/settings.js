@@ -498,23 +498,63 @@ function _renderConverterPreview(data, cardEl, tplEl, listEl, badgeEl, nameEl) {
     if (!cardEl) return;
     cardEl.style.display = 'flex';
 
-    if (badgeEl) badgeEl.textContent = `共解析 ${data.macros.length} 个宏`;
+    const maxDepth = data.maxDepth || (data.macros.length > 0 ? 1 : 0);
+    if (badgeEl) badgeEl.textContent = `共 ${data.macros.length} 个宏 · 嵌套深度 ${maxDepth} 层`;
     if (tplEl) tplEl.textContent = data.template;
     if (nameEl && !nameEl.value) nameEl.value = data.groupName;
 
     if (listEl) {
+        listEl.className = 'random-converter-tree-list';
         listEl.innerHTML = '';
+
         data.macros.forEach((m) => {
             const item = document.createElement('div');
-            item.className = 'random-converter-macro-item';
+            const isRoot = (m.level || 1) === 1;
+            item.className = `random-converter-macro-item ${isRoot ? 'random-converter-macro-item--level-1' : 'random-converter-macro-item--level-nested'}`;
             
-            const optSummaries = m.options.map(o => `• ${o.text}`).join('\n');
+            // Visual indentation based on nesting depth
+            const indentPx = Math.max(0, ((m.level || 1) - 1) * 20);
+            item.style.marginLeft = `${indentPx}px`;
+
+            // Level badge
+            const levelBadge = isRoot
+                ? `<span class="random-converter-level-badge random-converter-level-badge--root"><i class="fa-solid fa-seedling"></i> Level 1 根宏</span>`
+                : `<span class="random-converter-level-badge random-converter-level-badge--child"><i class="fa-solid fa-turn-down"></i> Level ${m.level || 2} 子宏</span>`;
+
+            // Parent & Children relationship chips
+            const relChips = [];
+            if (m.parentId) {
+                relChips.push(`<span class="random-converter-rel-chip"><i class="fa-solid fa-arrow-up"></i> 父宏: 宏 ${escapeHtml(m.parentId)}</span>`);
+            }
+            if (m.childrenIds && m.childrenIds.length > 0) {
+                const childTags = m.childrenIds.map(c => `宏 ${escapeHtml(c)}`).join(', ');
+                relChips.push(`<span class="random-converter-rel-chip"><i class="fa-solid fa-link"></i> 包含子宏: ${childTags}</span>`);
+            }
+            const relHtml = relChips.length > 0
+                ? `<div class="random-converter-rel-row">${relChips.join(' ')}</div>`
+                : '';
+
+            // Options list with highlighted macro tags
+            const optRowsHtml = (m.options || []).map((o, idx) => {
+                const highlighted = escapeHtml(o.text || '')
+                    .replace(/\{\{random_([^}]+)\}\}/g, '<span class="random-macro-chip-id">&#123;&#123;random_$1&#125;&#125;</span>');
+                return `<div class="random-converter-opt-row">• 选项 ${idx + 1}: ${highlighted}</div>`;
+            }).join('');
+
             item.innerHTML = `
                 <div class="random-converter-macro-title">
-                    <span><i class="fa-solid fa-cube"></i> 宏 ID: <code>${escapeHtml(m.id)}</code></span>
-                    <span style="font-size:0.85em; font-weight:normal; opacity:0.8;">${m.options.length} 个候选项</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span><i class="fa-solid fa-cube"></i> <strong>宏 ${escapeHtml(m.id)}</strong></span>
+                        ${levelBadge}
+                    </div>
+                    <span style="font-size:0.82em; font-weight:normal; color:var(--random-text-muted);">
+                        ${m.options.length} 个候选项
+                    </span>
                 </div>
-                <div class="random-converter-macro-opts" style="white-space:pre-wrap;">${escapeHtml(optSummaries)}</div>
+                ${relHtml}
+                <div class="random-converter-macro-opts">
+                    ${optRowsHtml}
+                </div>
             `;
             listEl.appendChild(item);
         });
