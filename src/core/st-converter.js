@@ -153,6 +153,23 @@ export function splitInnermostOptions(innerContent) {
 }
 
 /**
+ * Calculate the next available integer root index that avoids collisions with existing macros.
+ * @returns {number}
+ */
+export function getNextAvailableRootIndex() {
+    const existingMacros = getAllMacros();
+    let maxIndex = 0;
+    existingMacros.forEach(m => {
+        const match = String(m.id).match(/^(\d+)/);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxIndex) maxIndex = num;
+        }
+    });
+    return maxIndex + 1;
+}
+
+/**
  * Bottom-up (innermost-first) parser and converter for SillyTavern random macros.
  * Recursively resolves leaf macros from the inside out, constructing clean nested relations.
  *
@@ -260,11 +277,12 @@ export function convertStRandomMacros(text, suggestedGroupName = '', startRootNu
     const templateRootTempIds = [...template.matchAll(/@@RANDOM_MACRO_(\d+)@@/g)].map(m => m[1]);
 
     // 3. Option-Indexed Hierarchical ID Assignment:
-    // When sub-macros appear inside Option K of Root Macro, they become K-1, K-2, K-3...
-    // e.g. Option 11 -> {{random_11-1}}, {{random_11-2}}, {{random_11-3}}, {{random_11-4}}
-    const baseStart = Number(startRootNumber) || Number(getSettings()?.misc?.converterStartIndex) || 1;
+    // When sub-macros appear inside Option K of Root Macro, they become Prefix-K-1, Prefix-K-2...
+    // e.g. Root 1, Option 11 -> {{random_1-11-1}}
+    const baseStart = Number(startRootNumber) > 0
+        ? Number(startRootNumber)
+        : getNextAvailableRootIndex();
     let rootCounter = baseStart;
-    const singleRoot = templateRootTempIds.length <= 1;
     const idMap = {};
 
     function assignOptionIndexedIds(tempId, currentPrefix, currentLevel) {
@@ -279,19 +297,14 @@ export function convertStRandomMacros(text, suggestedGroupName = '', startRootNu
             const subMatches = [...opt.text.matchAll(/@@RANDOM_MACRO_(\d+)@@/g)].map(match => match[1]);
             
             subMatches.forEach((childTempId, subIndex) => {
-                let childPrefix;
-                if (currentLevel === 1 && singleRoot) {
-                    childPrefix = `${optNum}-${subIndex + 1}`;
-                } else {
-                    childPrefix = `${currentPrefix}-${optNum}-${subIndex + 1}`;
-                }
+                const childPrefix = `${currentPrefix}-${optNum}-${subIndex + 1}`;
                 assignOptionIndexedIds(childTempId, childPrefix, currentLevel + 1);
             });
         });
     }
 
     templateRootTempIds.forEach(rootTempId => {
-        const rootId = singleRoot ? '1' : String(rootCounter++);
+        const rootId = String(rootCounter++);
         assignOptionIndexedIds(rootTempId, rootId, 1);
     });
 
