@@ -40,6 +40,7 @@ function _loadValues(container) {
     const s = getSettings();
     const panel = s.panel || {};
     const lc    = s.globalLifecycle || {};
+    const misc  = s.misc || {};
 
     _val(container, '#random-setting-theme',    panel.theme    || 'follow');
     _val(container, '#random-setting-position', panel.position || 'normal');
@@ -47,6 +48,11 @@ function _loadValues(container) {
     _val(container, '#random-setting-height',   panel.height   ?? 70);
     _val(container, '#random-setting-every-x',  lc.everyXRounds !== null && lc.everyXRounds !== undefined ? lc.everyXRounds : '');
     _val(container, '#random-setting-keep-y',   lc.keepYRounds  !== null && lc.keepYRounds  !== undefined ? lc.keepYRounds  : '');
+
+    // Misc settings
+    const avoidRepCheck = container.querySelector('#random-setting-avoid-repetition');
+    if (avoidRepCheck) avoidRepCheck.checked = misc.avoidRepetition !== false;
+    _val(container, '#random-setting-converter-start-index', misc.converterStartIndex ?? 1);
 }
 
 // ── Bind events ───────────────────────────────────────────────────────────────
@@ -88,6 +94,7 @@ function _save(container, silent = false) {
     const s = getSettings();
     if (!s.panel) s.panel = {};
     if (!s.globalLifecycle) s.globalLifecycle = {};
+    if (!s.misc) s.misc = {};
 
     s.panel.theme    = container.querySelector('#random-setting-theme')?.value    || 'follow';
     s.panel.position = container.querySelector('#random-setting-position')?.value || 'normal';
@@ -98,6 +105,11 @@ function _save(container, silent = false) {
     const keepY  = container.querySelector('#random-setting-keep-y')?.value.trim();
     s.globalLifecycle.everyXRounds = everyX !== '' ? Number(everyX) : null;
     s.globalLifecycle.keepYRounds  = keepY  !== '' ? Number(keepY)  : null;
+
+    // Misc settings
+    s.misc.avoidRepetition = container.querySelector('#random-setting-avoid-repetition')?.checked !== false;
+    const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value);
+    s.misc.converterStartIndex = Number.isFinite(startIndex) && startIndex >= 1 ? startIndex : 1;
 
     // Collect component list state
     _collectComponentList(container);
@@ -441,7 +453,8 @@ function _bindConverter(container) {
             return;
         }
 
-        const result = convertStRandomMacros(text, nameEl?.value?.trim());
+        const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value) || 1;
+        const result = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);
         if (!result.macros.length) {
             showToast('未检测到有效的 {{random::...}} 语法结构', 'info');
             return;
@@ -459,9 +472,10 @@ function _bindConverter(container) {
             return;
         }
 
+        const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value) || 1;
         let parsed = _lastParsedData;
         if (!parsed || parsed.template === '') {
-            parsed = convertStRandomMacros(text, nameEl?.value?.trim());
+            parsed = convertStRandomMacros(text, nameEl?.value?.trim(), startIndex);
         }
 
         if (!parsed.macros.length) {

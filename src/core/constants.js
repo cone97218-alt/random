@@ -1,4 +1,4 @@
-﻿/**
+/**
  * constants.js - Core constants and default configurations
  */
 
@@ -38,6 +38,11 @@ export const DEFAULT_PANEL = {
     width: '80',
     height: '70',
     theme: THEME_MODES.FOLLOW,
+};
+
+export const DEFAULT_MISC = {
+    avoidRepetition: true,     // 防连续重复抽取
+    converterStartIndex: 1,    // 导入起始编号
 };
 
 // Max macro nesting depth (prevents infinite loops)

@@ -12,35 +12,92 @@ import { generateId } from '../utils/dom.js';
 import { getAllMacros, saveMacro, saveGroup } from './storage.js';
 
 /**
- * Splits options in a {{random::...}} content string.
- * Automatically detects whether the delimiter is '::' or ',' at the current depth level,
- * and preserves commas inside parentheses (...), brackets [...], and nested macros {{...}}.
+ * Check if a substring at index starts with any random macro opening tag.
+ * Matches: {{random:: , {{random: , {{pick:: , {{pick: , {{roll:: , {{roll:
+ * case-insensitively with optional spaces.
+ *
+ * @param {string} text
+ * @param {number} index
+ * @returns {string|null}
+ */
+export function matchRandomOpenTag(text, index) {
+    const slice = text.slice(index);
+    const match = slice.match(/^\{\{\s*(?:random|pick|roll)\s*::?/i);
+    return match ? match[0] : null;
+}
+
+/**
+ * Find the closing '}}' for a macro opening at contentStart with balanced brace depth.
+ * Ensures non-random inner macros like {{char}}, {{user}}, {{getvar::...}} don't prematurely close the block.
+ *
+ * @param {string} text
+ * @param {number} contentStart
+ * @returns {number} Index where closing '}}' starts, or -1 if unbalanced
+ */
+export function findMatchingClosingBraces(text, contentStart) {
+    let depth = 2; // already inside opening '{{'
+    let i = contentStart;
+
+    while (i < text.length && depth > 0) {
+        if (text[i] === '{' && text[i + 1] === '{') {
+            depth += 2;
+            i += 2;
+        } else if (text[i] === '}' && text[i + 1] === '}') {
+            depth -= 2;
+            if (depth === 0) {
+                return i;
+            }
+            i += 2;
+        } else {
+            i++;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Check if a text snippet contains any un-converted random macro opening tag.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function containsRandomOpenTag(text) {
+    return /\{\{\s*(?:random|pick|roll)\s*::?/i.test(text);
+}
+
+/**
+ * Splits options in an innermost (leaf-level) random macro content string.
+ * Preserves non-random nested macros like {{char}}, {{user}}, {{getvar::...}}
+ * and parentheses (...), brackets [...] without splitting them.
+ * Note: Only splits by '::' or ASCII comma ',', NEVER by Chinese full-width comma '，'.
  *
  * @param {string} innerContent
  * @returns {string[]}
  */
-export function splitTopLevelOptions(innerContent) {
+export function splitInnermostOptions(innerContent) {
     if (!innerContent || typeof innerContent !== 'string') return [];
-
-    // 1. First pass: detect if '::' exists at top level (outside {{...}})
+    
+    // 1. Scan at top level (depth 0 of any {{...}}, (...), [...]) to see if '::' exists
     let hasColons = false;
     let braceDepth = 0;
+    let parenDepth = 0;
+    let bracketDepth = 0;
 
     for (let i = 0; i < innerContent.length; i++) {
-        const char = innerContent[i];
-        const nextChar = innerContent[i + 1];
-
-        if (char === '{' && nextChar === '{') {
+        if (innerContent[i] === '{' && innerContent[i + 1] === '{') {
             braceDepth += 2;
             i++;
-        } else if (char === '}' && nextChar === '}') {
+        } else if (innerContent[i] === '}' && innerContent[i + 1] === '}') {
             braceDepth = Math.max(0, braceDepth - 2);
             i++;
-        } else if (char === '{') {
-            braceDepth++;
-        } else if (char === '}') {
-            braceDepth = Math.max(0, braceDepth - 1);
-        } else if (braceDepth === 0 && char === ':' && nextChar === ':') {
+        } else if (innerContent[i] === '(') {
+            parenDepth++;
+        } else if (innerContent[i] === ')') {
+            parenDepth = Math.max(0, parenDepth - 1);
+        } else if (innerContent[i] === '[') {
+            bracketDepth++;
+        } else if (innerContent[i] === ']') {
+            bracketDepth = Math.max(0, bracketDepth - 1);
+        } else if (braceDepth === 0 && parenDepth === 0 && bracketDepth === 0 && innerContent[i] === ':' && innerContent[i + 1] === ':') {
             hasColons = true;
             break;
         }
@@ -48,52 +105,43 @@ export function splitTopLevelOptions(innerContent) {
 
     const delimiter = hasColons ? '::' : ',';
 
-    // 2. Second pass: split by the detected delimiter, respecting braces, parens, brackets
+    // 2. Split by delimiter at top level
     const options = [];
     let current = '';
     braceDepth = 0;
-    let parenDepth = 0;
-    let bracketDepth = 0;
+    parenDepth = 0;
+    bracketDepth = 0;
 
     for (let i = 0; i < innerContent.length; i++) {
-        const char = innerContent[i];
-        const nextChar = innerContent[i + 1];
-
-        if (char === '{' && nextChar === '{') {
+        if (innerContent[i] === '{' && innerContent[i + 1] === '{') {
             braceDepth += 2;
             current += '{{';
             i++;
-        } else if (char === '}' && nextChar === '}') {
+        } else if (innerContent[i] === '}' && innerContent[i + 1] === '}') {
             braceDepth = Math.max(0, braceDepth - 2);
             current += '}}';
             i++;
-        } else if (char === '{') {
-            braceDepth++;
-            current += char;
-        } else if (char === '}') {
-            braceDepth = Math.max(0, braceDepth - 1);
-            current += char;
-        } else if (char === '(') {
+        } else if (innerContent[i] === '(') {
             parenDepth++;
-            current += char;
-        } else if (char === ')') {
+            current += '(';
+        } else if (innerContent[i] === ')') {
             parenDepth = Math.max(0, parenDepth - 1);
-            current += char;
-        } else if (char === '[') {
+            current += ')';
+        } else if (innerContent[i] === '[') {
             bracketDepth++;
-            current += char;
-        } else if (char === ']') {
+            current += '[';
+        } else if (innerContent[i] === ']') {
             bracketDepth = Math.max(0, bracketDepth - 1);
-            current += char;
-        } else if (braceDepth === 0 && delimiter === '::' && char === ':' && nextChar === ':') {
+            current += ']';
+        } else if (braceDepth === 0 && parenDepth === 0 && bracketDepth === 0 && delimiter === '::' && innerContent[i] === ':' && innerContent[i + 1] === ':') {
             options.push(current.trim());
             current = '';
-            i++; // Skip the second colon
-        } else if (braceDepth === 0 && delimiter === ',' && parenDepth === 0 && bracketDepth === 0 && (char === ',' || char === '，')) {
+            i++;
+        } else if (braceDepth === 0 && parenDepth === 0 && bracketDepth === 0 && delimiter === ',' && innerContent[i] === ',') {
             options.push(current.trim());
             current = '';
         } else {
-            current += char;
+            current += innerContent[i];
         }
     }
 
@@ -105,163 +153,200 @@ export function splitTopLevelOptions(innerContent) {
 }
 
 /**
- * Generate a clean numeric ID for a macro based on sequential ordering.
- * @param {number} index
- * @param {Set<string>} existingIds
- * @returns {string}
- */
-function getNextSequentialId(counterObj, existingIds) {
-    while (existingIds.has(String(counterObj.val).toLowerCase())) {
-        counterObj.val++;
-    }
-    const finalId = String(counterObj.val++);
-    existingIds.add(finalId.toLowerCase());
-    return finalId;
-}
-
-/**
- * Parse input string into a tree of AST nodes.
- * @param {string} text
- * @returns {Array<Object>}
- */
-export function parseToAst(text) {
-    const rootNodes = [];
-    let i = 0;
-    let textBuffer = '';
-
-    while (i < text.length) {
-        const tagMatch = text.slice(i).match(/^\{\{random::/i);
-        if (tagMatch) {
-            if (textBuffer) {
-                rootNodes.push({ type: 'text', value: textBuffer });
-                textBuffer = '';
-            }
-            const tagLen = tagMatch[0].length;
-            let depth = 2; // already inside {{
-            let j = i + tagLen;
-            let contentStart = j;
-
-            while (j < text.length && depth > 0) {
-                if (text[j] === '{' && text[j + 1] === '{') {
-                    depth += 2;
-                    j += 2;
-                } else if (text[j] === '}' && text[j + 1] === '}') {
-                    depth -= 2;
-                    if (depth === 0) break;
-                    j += 2;
-                } else {
-                    j++;
-                }
-            }
-
-            if (depth === 0) {
-                const innerContent = text.slice(contentStart, j);
-                const rawOptions = splitTopLevelOptions(innerContent);
-                const macroNode = {
-                    type: 'macro',
-                    raw: text.slice(i, j + 2),
-                    options: rawOptions.map(opt => parseToAst(opt)),
-                };
-                rootNodes.push(macroNode);
-                i = j + 2;
-                continue;
-            }
-        }
-        textBuffer += text[i];
-        i++;
-    }
-    if (textBuffer) {
-        rootNodes.push({ type: 'text', value: textBuffer });
-    }
-    return rootNodes;
-}
-
-/**
- * Top-down hierarchical AST converter for SillyTavern random macros.
- * Ensures root macros are numbered first (1, 2, ...), followed by child macros,
- * maintaining crystal-clear tree hierarchy and parent-child linkages.
+ * Bottom-up (innermost-first) parser and converter for SillyTavern random macros.
+ * Recursively resolves leaf macros from the inside out, constructing clean nested relations.
  *
  * @param {string} text
  * @param {string} [suggestedGroupName]
- * @returns {{ template: string, macros: Array<Object>, groupName: string, maxDepth: number, tree: Array<Object> }}
+ * @returns {{ template: string, macros: Array<Object>, groupName: string, maxDepth: number }}
  */
-export function convertStRandomMacros(text, suggestedGroupName = '') {
+export function convertStRandomMacros(text, suggestedGroupName = '', startRootNumber = null) {
     if (!text || typeof text !== 'string') {
-        return { template: '', macros: [], groupName: suggestedGroupName || '酒馆宏转换组', maxDepth: 0, tree: [] };
+        return { template: '', macros: [], groupName: suggestedGroupName || '酒馆宏转换组', maxDepth: 0 };
     }
 
-    const astList = parseToAst(text.trim());
-    const usedIds = new Set(getAllMacros().map(m => String(m.id).toLowerCase()));
-    const counterObj = { val: 1 };
-    const flatMacros = [];
-    let maxDepth = 0;
+    let workingText = text.trim();
 
-    // 1. Assign IDs top-down (Breadth-first / Pre-order from root to leaves)
-    function assignIdsTopDown(nodes, level = 1, parentId = null) {
-        if (level > maxDepth) maxDepth = level;
+    // Auto-balance missing closing braces if user omitted the last }}
+    const openCount = (workingText.match(/\{\{/g) || []).length;
+    const closeCount = (workingText.match(/\}\}/g) || []).length;
+    if (openCount > closeCount) {
+        workingText += '}}'.repeat(openCount - closeCount);
+    }
 
-        for (const node of nodes) {
-            if (node.type === 'macro') {
-                node.id = getNextSequentialId(counterObj, usedIds);
-                node.level = level;
-                node.parentId = parentId;
-                node.childrenIds = [];
+    const rawMacros = [];
+    let tempCounter = 1;
+    let maxIterations = 500;
 
-                if (parentId) {
-                    const parentMacro = flatMacros.find(m => m.id === parentId);
-                    if (parentMacro && !parentMacro.childrenIds.includes(node.id)) {
-                        parentMacro.childrenIds.push(node.id);
+    // 1. Bottom-up extraction: continually extract the innermost {{random::...}} (leaf macros)
+    while (maxIterations-- > 0) {
+        let candidateStart = -1;
+        let candidateTag = null;
+        let candidateContentStart = -1;
+        let candidateEnd = -1;
+        let candidateInnerContent = null;
+
+        // Scan backwards to find the innermost random macro block
+        for (let i = workingText.length - 1; i >= 0; i--) {
+            const tag = matchRandomOpenTag(workingText, i);
+            if (tag) {
+                const contentStart = i + tag.length;
+                const endIdx = findMatchingClosingBraces(workingText, contentStart);
+                if (endIdx !== -1) {
+                    const innerContent = workingText.substring(contentStart, endIdx);
+                    // Ensure this block contains no other un-converted random macro tags
+                    if (!containsRandomOpenTag(innerContent)) {
+                        candidateStart = i;
+                        candidateTag = tag;
+                        candidateContentStart = contentStart;
+                        candidateEnd = endIdx;
+                        candidateInnerContent = innerContent;
+                        break;
                     }
                 }
-                flatMacros.push(node);
-
-                // Recurse on children options
-                for (const optNodes of node.options) {
-                    assignIdsTopDown(optNodes, level + 1, node.id);
-                }
             }
         }
-    }
 
-    assignIdsTopDown(astList, 1, null);
-
-    // 2. Render AST nodes back to converted string with {{random_xxx}}
-    function renderAst(nodes) {
-        let str = '';
-        for (const node of nodes) {
-            if (node.type === 'text') {
-                str += node.value;
-            } else if (node.type === 'macro') {
-                str += `{{random_${node.id}}}`;
-            }
+        if (candidateStart === -1) {
+            break; // No more random macros found
         }
-        return str;
-    }
 
-    // 3. Format structured macro definitions with rich hierarchy info
-    const macroDefs = flatMacros.map(m => {
-        return {
-            id: m.id,
-            level: m.level,
-            parentId: m.parentId,
-            childrenIds: m.childrenIds || [],
+        const rawOptions = splitInnermostOptions(candidateInnerContent);
+        const tempId = String(tempCounter++);
+        const placeholder = `@@RANDOM_MACRO_${tempId}@@`;
+
+        rawMacros.push({
+            tempId,
+            placeholder,
             triggerProbability: 100,
-            options: m.options.map(optNodes => ({
-                text: renderAst(optNodes),
-                weight: 1,
-            })),
-        };
+            options: rawOptions.map(opt => ({ text: opt, weight: 1 })),
+        });
+
+        // Replace the matched innermost block with the atomic placeholder
+        workingText = workingText.substring(0, candidateStart) + placeholder + workingText.substring(candidateEnd + 2);
+    }
+
+    // 2. Build tree relations from placeholders
+    const template = workingText;
+
+    const macroDefs = rawMacros.map(m => ({
+        tempId: m.tempId,
+        triggerProbability: m.triggerProbability,
+        options: m.options.map(opt => ({ text: opt.text, weight: opt.weight })),
+        childrenTempIds: [],
+        parentTempId: null,
+        level: 1,
+    }));
+
+    // Find children
+    macroDefs.forEach(m => {
+        const childSet = new Set();
+        m.options.forEach(opt => {
+            const matches = [...opt.text.matchAll(/@@RANDOM_MACRO_(\d+)@@/g)].map(match => match[1]);
+            matches.forEach(cid => childSet.add(cid));
+        });
+        m.childrenTempIds = [...childSet];
     });
 
-    const template = renderAst(astList);
-    const groupName = suggestedGroupName.trim() || (macroDefs.length > 0 ? `酒馆宏转换组_${macroDefs[0].id}` : '酒馆宏导入组');
+    // Find parents
+    macroDefs.forEach(parent => {
+        parent.childrenTempIds.forEach(cid => {
+            const child = macroDefs.find(m => m.tempId === cid);
+            if (child) child.parentTempId = parent.tempId;
+        });
+    });
+
+    // Roots in the main template
+    const templateRootTempIds = [...template.matchAll(/@@RANDOM_MACRO_(\d+)@@/g)].map(m => m[1]);
+
+    // 3. Option-Indexed Hierarchical ID Assignment:
+    // When sub-macros appear inside Option K of Root Macro, they become K-1, K-2, K-3...
+    // e.g. Option 11 -> {{random_11-1}}, {{random_11-2}}, {{random_11-3}}, {{random_11-4}}
+    const baseStart = Number(startRootNumber) || Number(getSettings()?.misc?.converterStartIndex) || 1;
+    let rootCounter = baseStart;
+    const singleRoot = templateRootTempIds.length <= 1;
+    const idMap = {};
+
+    function assignOptionIndexedIds(tempId, currentPrefix, currentLevel) {
+        idMap[tempId] = currentPrefix;
+        const m = macroDefs.find(node => node.tempId === tempId);
+        if (!m) return;
+        m.level = currentLevel;
+
+        // Iterate through each option of this macro
+        m.options.forEach((opt, optIndex) => {
+            const optNum = optIndex + 1;
+            const subMatches = [...opt.text.matchAll(/@@RANDOM_MACRO_(\d+)@@/g)].map(match => match[1]);
+            
+            subMatches.forEach((childTempId, subIndex) => {
+                let childPrefix;
+                if (currentLevel === 1 && singleRoot) {
+                    childPrefix = `${optNum}-${subIndex + 1}`;
+                } else {
+                    childPrefix = `${currentPrefix}-${optNum}-${subIndex + 1}`;
+                }
+                assignOptionIndexedIds(childTempId, childPrefix, currentLevel + 1);
+            });
+        });
+    }
+
+    templateRootTempIds.forEach(rootTempId => {
+        const rootId = singleRoot ? '1' : String(rootCounter++);
+        assignOptionIndexedIds(rootTempId, rootId, 1);
+    });
+
+    // Handle any orphaned macros (if any)
+    macroDefs.forEach(m => {
+        if (!idMap[m.tempId]) {
+            const orphanId = String(rootCounter++);
+            assignOptionIndexedIds(m.tempId, orphanId, 1);
+        }
+    });
+
+    // Calculate max depth
+    let maxDepth = 1;
+    macroDefs.forEach(m => {
+        if (m.level > maxDepth) maxDepth = m.level;
+    });
+
+    // Sort in top-down tree display order
+    const orderedList = [];
+    const visited = new Set();
+    function addSubtree(tempId) {
+        if (visited.has(tempId)) return;
+        visited.add(tempId);
+        const m = macroDefs.find(node => node.tempId === tempId);
+        if (!m) return;
+        orderedList.push(m);
+        m.childrenTempIds.forEach(cid => addSubtree(cid));
+    }
+    templateRootTempIds.forEach(rootId => addSubtree(rootId));
+    macroDefs.forEach(m => { if (!visited.has(m.tempId)) orderedList.push(m); });
+
+    function replaceWithFinalIds(str) {
+        return str.replace(/@@RANDOM_MACRO_(\d+)@@/g, (match, tempId) => `{{random_${idMap[tempId] || tempId}}}`);
+    }
+
+    const finalMacros = orderedList.map(m => ({
+        id: idMap[m.tempId],
+        level: m.level,
+        parentId: m.parentTempId ? idMap[m.parentTempId] : null,
+        childrenIds: m.childrenTempIds.map(cid => idMap[cid]),
+        triggerProbability: m.triggerProbability,
+        options: m.options.map(opt => ({
+            text: replaceWithFinalIds(opt.text),
+            weight: opt.weight,
+        })),
+    }));
+
+    const finalTemplate = replaceWithFinalIds(template);
+    const groupName = suggestedGroupName.trim() || (finalMacros.length > 0 ? `酒馆宏转换组_${finalMacros[0].id}` : '酒馆宏导入组');
 
     return {
-        template,
-        macros: macroDefs,
+        template: finalTemplate,
+        macros: finalMacros,
         groupName,
         maxDepth,
-        tree: astList,
     };
 }
 

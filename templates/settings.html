@@ -161,6 +161,35 @@
         </div>
     </details>
 
+    <!-- ── 杂项 ── -->
+    <details class="random-settings-details" open>
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-sliders"></i>
+            <span>杂项</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-settings-row">
+                <label class="random-settings-label">
+                    <span>防连续重复抽取</span>
+                    <small class="random-settings-hint" style="display:block; font-size:0.82em; color:var(--random-text-muted);">当选项数 &gt; 1 时，重Roll或新轮次自动排除上一轮命中的选项，避免连续抽中相同内容</small>
+                </label>
+                <div class="random-settings-control">
+                    <input type="checkbox" id="random-setting-avoid-repetition" class="random-checkbox" checked />
+                </div>
+            </div>
+            <div class="random-settings-row">
+                <label class="random-settings-label">
+                    <span>酒馆宏导入起始序号</span>
+                    <small class="random-settings-hint" style="display:block; font-size:0.82em; color:var(--random-text-muted);">导入酒馆宏时的根宏编号（默认 1，将生成 1, 1-1, 1-2 等）</small>
+                </label>
+                <div class="random-settings-control">
+                    <input type="number" class="random-input random-input--narrow" id="random-setting-converter-start-index"
+                        min="1" step="1" value="1" placeholder="1" />
+                </div>
+            </div>
+        </div>
+    </details>
+
     <!-- ── 教程 ── -->
     <details class="random-settings-details">
         <summary class="random-settings-summary">

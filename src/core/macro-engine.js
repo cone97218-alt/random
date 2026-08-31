@@ -8,29 +8,42 @@
  *   - Result caching per chat round
  */
 
-import { getMacroById } from './storage.js';
+import { getMacroById, getSettings } from './storage.js';
 import { MAX_NESTING_DEPTH } from './constants.js';
 
 // ── Weighted random ───────────────────────────────────────────────────────────
 
 /**
- * Select one option from a weighted list.
+ * Select one option from a weighted list, with optional exclusion of the previously selected option.
  * @param {Array<{text: string, weight: number}>} options
+ * @param {string} [excludeText] - Avoid picking this text if other options are available
  * @returns {string|null}
  */
-function weightedRandom(options) {
+function weightedRandom(options, excludeText = null) {
     if (!options || options.length === 0) return null;
     
-    const totalWeight = options.reduce((sum, o) => sum + (Number(o.weight) || 1), 0);
-    if (totalWeight <= 0) return options[0]?.text || null;
+    // Filter out the previously selected option to avoid consecutive repeats
+    let pool = options;
+    if (excludeText && options.length > 1) {
+        const filtered = options.filter(o => o.text !== excludeText);
+        if (filtered.length > 0) {
+            pool = filtered;
+        }
+    }
+
+    const totalWeight = pool.reduce((sum, o) => sum + (Number(o.weight) || 1), 0);
+    if (totalWeight <= 0) return pool[0]?.text || null;
     
     let rand = Math.random() * totalWeight;
-    for (const option of options) {
+    for (const option of pool) {
         rand -= (Number(option.weight) || 1);
         if (rand <= 0) return option.text;
     }
-    return options[options.length - 1]?.text || null;
+    return pool[pool.length - 1]?.text || null;
 }
+
+// Memory map to track the last chosen option text per macro ID
+const _lastChosenOptionMap = new Map();
 
 // ── Core resolution ───────────────────────────────────────────────────────────
 
@@ -76,12 +89,17 @@ function resolveMacro(macroId, cache, callStack) {
         }
     }
     
-    // Select a weighted option
-    const selected = weightedRandom(macro.options || []);
+    // Select a weighted option (avoiding consecutive duplicate of last roll if enabled)
+    const avoidRepetition = getSettings().misc?.avoidRepetition !== false;
+    const prevOption = avoidRepetition ? (_lastChosenOptionMap.get(macroId) || null) : null;
+    const selected = weightedRandom(macro.options || [], prevOption);
     if (selected === null) {
         cache.set(macroId, '');
         return '';
     }
+
+    // Record last chosen raw option
+    _lastChosenOptionMap.set(macroId, selected);
     
     // Recursively resolve any nested macros in the selected text
     const newStack = [...callStack, macroId];
@@ -212,13 +230,25 @@ export function rollMacros(macroIds, groupChatState, group = null) {
 
 /**
  * Resolve a template string with all currently cached macro values from a group state.
- * Used for preview display in the UI.
+ * Used for preview display in the UI. Strictly deterministic — never rolls new random values.
  *
  * @param {string} template
  * @param {Object} currentValues - Map of macroId → resolved string
  * @returns {string}
  */
 export function previewTemplate(template, currentValues) {
-    const cache = new Map(Object.entries(currentValues || {}));
-    return resolveTemplate(template, cache);
+    if (!template) return '';
+    const values = currentValues || {};
+    let text = template;
+    let prev;
+    let iterations = 0;
+    do {
+        prev = text;
+        text = text.replace(/\{\{random_([^}]+)\}\}/g, (match, macroId) => {
+            const id = macroId.trim();
+            return values[id] !== undefined ? values[id] : match;
+        });
+        iterations++;
+    } while (text !== prev && iterations < 10);
+    return text;
 }

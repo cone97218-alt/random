@@ -113,16 +113,55 @@
                 <div class="random-field-label-row">
                     <label class="random-field-label">宏列表</label>
                     <div class="random-field-actions">
-                        <button class="random-btn random-btn--sm" id="random-gm-scan-btn" title="从上方模板文本中扫描 &#123;&#123;random_xxx&#125;&#125; 并自动补齐宏">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <span>扫描模板宏</span>
+                        <button class="random-btn random-btn--sm" id="random-gm-batch-toggle-btn" title="批量多选与删除">
+                            <i class="fa-solid fa-list-check"></i>
                         </button>
-                        <button class="random-btn random-btn--sm" id="random-gm-add-macro-btn">
+                        <button class="random-btn random-btn--sm" id="random-gm-search-toggle-btn" title="搜索定位宏及依赖">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                        <button class="random-btn random-btn--sm" id="random-gm-scan-btn" title="从上方模板文本中扫描 &#123;&#123;random_xxx&#125;&#125; 并自动补齐宏">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                        </button>
+                        <button class="random-btn random-btn--sm" id="random-gm-add-macro-btn" title="添加宏">
                             <i class="fa-solid fa-plus"></i>
-                            <span>添加宏</span>
                         </button>
                     </div>
                 </div>
+                <!-- Search bar in group modal -->
+                <div class="random-gm-search-bar" id="random-gm-search-bar" style="display:none;">
+                    <div class="random-gm-search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass random-gm-search-icon"></i>
+                        <input type="text" class="random-input random-gm-search-input" id="random-gm-search-input"
+                            placeholder="输入关键词定位宏名称、选项内容或依赖链..." />
+                        <button class="random-icon-btn--xs random-gm-search-clear" id="random-gm-search-clear" title="清空搜索" style="display:none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="random-gm-search-stats" id="random-gm-search-stats" style="display:none;"></div>
+                </div>
+                <!-- Batch operations toolbar (hidden by default, shown when clicking batch button) -->
+                <div class="random-gm-batch-bar" id="random-gm-batch-bar" style="display:none;">
+                    <label class="random-gm-batch-select-label" title="全选 / 取消全选">
+                        <input type="checkbox" id="random-gm-select-all" class="random-checkbox" />
+                        <span id="random-gm-select-count">0 / 0 已选</span>
+                    </label>
+                    <div class="random-gm-batch-actions">
+                        <button class="random-btn random-btn--sm" id="random-gm-select-range-btn" title="开启连选模式：依次点击起点与终点宏即可连选区间">
+                            <i class="fa-solid fa-link"></i>
+                            <span>连选</span>
+                        </button>
+                        <button class="random-btn random-btn--sm" id="random-gm-select-invert-btn" title="反选当前列表项">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>反选</span>
+                        </button>
+                        <button class="random-btn random-btn--sm random-btn--danger" id="random-gm-batch-del-btn" style="display:none;" title="批量移除选中的宏">
+                            <i class="fa-solid fa-trash"></i>
+                            <span id="random-gm-batch-del-text">批量删除</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Health check alert bar -->
+                <div class="random-gm-health-bar" id="random-gm-health-bar" style="display:none;"></div>
                 <div class="random-macro-list" id="random-gm-macro-list">
                     <!-- Macros rendered here -->
                 </div>

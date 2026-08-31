@@ -7,7 +7,7 @@
  */
 
 import { getContext, extension_settings } from '../../../../../extensions.js';
-import { MODULE_NAME, DEFAULT_LIFECYCLE, DEFAULT_PANEL, DEFAULT_PROMPT_COMPONENTS } from './constants.js';
+import { MODULE_NAME, DEFAULT_LIFECYCLE, DEFAULT_PANEL, DEFAULT_MISC, DEFAULT_PROMPT_COMPONENTS } from './constants.js';
 
 // ── Settings helpers ──────────────────────────────────────────────────────────
 
@@ -18,6 +18,10 @@ import { MODULE_NAME, DEFAULT_LIFECYCLE, DEFAULT_PANEL, DEFAULT_PROMPT_COMPONENT
 export function getSettings() {
     if (!extension_settings[MODULE_NAME]) {
         extension_settings[MODULE_NAME] = createDefaultSettings();
+    }
+    // Ensure misc settings exist
+    if (!extension_settings[MODULE_NAME].misc) {
+        extension_settings[MODULE_NAME].misc = { ...DEFAULT_MISC };
     }
     // Ensure aiPromptComponents array exists if loaded from older settings version
     if (!extension_settings[MODULE_NAME].aiPromptComponents || !Array.isArray(extension_settings[MODULE_NAME].aiPromptComponents)) {
@@ -35,6 +39,7 @@ function createDefaultSettings() {
         groups: [],
         globalLifecycle: { ...DEFAULT_LIFECYCLE },
         panel: { ...DEFAULT_PANEL },
+        misc: { ...DEFAULT_MISC },
         // Prompt component pipeline for AI generation (deep clone to avoid mutation)
         aiPromptComponents: DEFAULT_PROMPT_COMPONENTS.map(c => ({ ...c })),
     };
