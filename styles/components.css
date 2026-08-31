@@ -361,6 +361,7 @@
 .random-group-list {
     flex:       1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding:    10px 14px;
     display:    flex;
     flex-direction: column;
@@ -595,6 +596,7 @@
 .random-modal-body {
     flex:       1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding:    14px 16px;
     display:    flex;
     flex-direction: column;
@@ -1304,6 +1306,7 @@
 .random-generate-chat {
     flex:       1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding:    12px 14px;
     display:    flex;
     flex-direction: column;

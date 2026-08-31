@@ -182,18 +182,44 @@
     flex:           0 0 auto;
 }
 
-/* ── Body ────────────────────────────────────────────── */
+/* ── Body & Views (Strict No Horizontal Scroll) ─────── */
 .random-body {
     flex:       1;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
     padding:    0;
+    max-width:  100%;
+    box-sizing: border-box;
 }
 
 .random-view {
     height:     100%;
     display:    flex;
     flex-direction: column;
+    overflow-x: hidden !important;
+    max-width:  100%;
+    box-sizing: border-box;
+}
+
+.random-popup-content,
+.random-manage-wrap,
+.random-group-list,
+.random-generate-wrap,
+.random-generate-chat,
+.random-settings-wrap,
+.random-settings-body,
+.random-modal,
+.random-modal-body,
+.random-option-list,
+.random-converter-card,
+.random-converter-preview-box,
+.random-option-edit-list,
+.random-generate-result,
+#random-st-convert-macros-list,
+#random-gm-macro-list,
+#random-st-prompt-comps-list {
+    overflow-x: hidden !important;
+    box-sizing: border-box;
 }
 
 /* ── Toast ───────────────────────────────────────────── */
