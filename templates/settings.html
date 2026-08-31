@@ -1,0 +1,256 @@
+<!-- Random Macro Extension - Settings Panel -->
+<div class="random-settings-wrap">
+
+    <!-- ── 外观 ── -->
+    <details class="random-settings-details" open>
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-palette"></i>
+            <span>外观</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-settings-row">
+                <label class="random-settings-label">主题</label>
+                <div class="random-settings-control">
+                    <select class="random-select" id="random-setting-theme">
+                        <option value="follow">跟随酒馆</option>
+                        <option value="morandi-beige">莫兰迪米色</option>
+                        <option value="morandi-gray">莫兰迪灰色</option>
+                    </select>
+                </div>
+            </div>
+            <div class="random-settings-row">
+                <label class="random-settings-label">弹窗位置</label>
+                <div class="random-settings-control">
+                    <select class="random-select" id="random-setting-position">
+                        <option value="normal">居中</option>
+                        <option value="left">左侧</option>
+                        <option value="right">右侧</option>
+                        <option value="top">顶部</option>
+                        <option value="bottom">底部</option>
+                    </select>
+                </div>
+            </div>
+            <div class="random-settings-row">
+                <label class="random-settings-label">宽度 (%)</label>
+                <div class="random-settings-control">
+                    <input type="number" class="random-input random-input--narrow" id="random-setting-width"
+                        min="20" max="100" step="5" placeholder="80" />
+                </div>
+            </div>
+            <div class="random-settings-row">
+                <label class="random-settings-label">高度 (%)</label>
+                <div class="random-settings-control">
+                    <input type="number" class="random-input random-input--narrow" id="random-setting-height"
+                        min="20" max="100" step="5" placeholder="70" />
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- ── 全局注入周期 ── -->
+    <details class="random-settings-details" open>
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-rotate"></i>
+            <span>全局注入周期</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-settings-row">
+                <label class="random-settings-label">每 x 轮注入一次</label>
+                <div class="random-settings-control">
+                    <input type="number" class="random-input random-input--narrow" id="random-setting-every-x"
+                        min="1" step="1" placeholder="留空=每轮" />
+                </div>
+            </div>
+            <div class="random-settings-row">
+                <label class="random-settings-label">注入后保持 y 轮</label>
+                <div class="random-settings-control">
+                    <input type="number" class="random-input random-input--narrow" id="random-setting-keep-y"
+                        min="0" step="1" placeholder="留空=不保持" />
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- ── 提示词 ── -->
+    <details class="random-settings-details" open>
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-list-ul"></i>
+            <span>提示词</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-settings-hint-row">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>拖动手柄调整顺序，点击编辑图标修改可编辑条目内容。</span>
+            </div>
+            <!-- Component list rendered by settings.js -->
+            <div class="random-prompt-component-list" id="random-prompt-component-list"></div>
+            <div class="random-settings-row" style="margin-top:8px;">
+                <button class="random-btn random-btn--sm random-btn--secondary" id="random-add-prompt-component-btn">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>添加自定义条目</span>
+                </button>
+            </div>
+        </div>
+    </details>
+
+    <!-- ── 酒馆原生宏嵌套转换导入 ── -->
+    <details class="random-settings-details" open>
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-code-merge"></i>
+            <span>酒馆原生宏嵌套转换导入</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-settings-hint-row">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>输入酒馆原生的 <code>&#123;&#123;random::选项1,选项2&#125;&#125;</code> 宏文本（支持任意层级嵌套），一键解析并自动生成本拓展的规范宏组与递归宏定义。</span>
+            </div>
+            
+            <div class="random-settings-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+                <label class="random-settings-label" style="font-weight:600;">酒馆宏原始文本</label>
+                <textarea class="random-textarea" id="random-st-convert-input" rows="3"
+                    placeholder="例如：&#123;&#123;random::我喜欢&#123;&#123;random::草莓,苹果&#125;&#125;,我讨厌&#123;&#123;random::草莓,香蕉&#125;&#125;&#125;&#125;"></textarea>
+            </div>
+
+            <div class="random-settings-row">
+                <label class="random-settings-label">宏组名称</label>
+                <div class="random-settings-control">
+                    <input type="text" class="random-input" id="random-st-convert-group-name"
+                        placeholder="留空自动根据词条命名" />
+                </div>
+            </div>
+
+            <div class="random-settings-row">
+                <label class="random-settings-label">注入深度 / 角色</label>
+                <div class="random-settings-control" style="display:flex; gap:8px; width:100%;">
+                    <input type="number" class="random-input random-input--narrow" id="random-st-convert-depth"
+                        value="4" min="0" max="99" title="注入深度 (例如 4)" style="width:70px;" />
+                    <select class="random-select" id="random-st-convert-role" style="flex:1;">
+                        <option value="0">System (系统)</option>
+                        <option value="1">User (用户)</option>
+                        <option value="2">Assistant (助手)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="random-settings-row" style="margin-top:6px; gap:8px;">
+                <button class="random-btn random-btn--secondary" id="random-st-convert-preview-btn">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>解析并预览</span>
+                </button>
+                <button class="random-btn random-btn--primary" id="random-st-convert-import-btn">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>一键解析并导入为宏组</span>
+                </button>
+            </div>
+
+            <!-- Preview Container -->
+            <div class="random-converter-card" id="random-st-convert-preview-card" style="display:none;">
+                <div style="font-size:0.85em; font-weight:600; color:var(--random-accent); display:flex; justify-content:space-between; align-items:center;">
+                    <span><i class="fa-solid fa-square-poll-vertical"></i> 转换预览结果</span>
+                    <span id="random-st-convert-count-badge" style="font-size:0.8em; opacity:0.85;"></span>
+                </div>
+                <div>
+                    <div style="font-size:0.8em; color:var(--random-text-muted); margin-bottom:3px;">转换后的宏组注入模板：</div>
+                    <div class="random-converter-preview-box" id="random-st-convert-template-preview"></div>
+                </div>
+                <div>
+                    <div style="font-size:0.8em; color:var(--random-text-muted); margin-bottom:3px;">将生成的宏定义与嵌套关系：</div>
+                    <div id="random-st-convert-macros-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;"></div>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- ── 教程 ── -->
+    <details class="random-settings-details">
+        <summary class="random-settings-summary">
+            <i class="fa-solid fa-book-open"></i>
+            <span>教程</span>
+        </summary>
+        <div class="random-settings-body">
+            <div class="random-tutorial-card">
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-cube"></i>
+                        <span>1. 随机宏</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        每个随机宏有唯一 <code>ID</code>，在模板中写 <code>&#123;&#123;random_宏ID&#125;&#125;</code>，插件在每次对话时随机抽取该宏的候选选项填入。
+                    </div>
+                </div>
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>2. 宏配置组与注入</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        <ul>
+                            <li><strong>注入身份</strong>：System / User / Assistant。</li>
+                            <li><strong>注入深度</strong>：类似世界书 D 条目，填 4 即在倒数第 4 条消息处注入。</li>
+                            <li><strong>模板</strong>：发给 AI 的提示词，其中用 <code>&#123;&#123;random_xxx&#125;&#125;</code> 嵌入宏。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-percent"></i>
+                        <span>3. 概率、权重与嵌套</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        <ul>
+                            <li><strong>触发概率 0-100%</strong>：控制本轮是否激活该宏。</li>
+                            <li><strong>选项权重</strong>：权重越高抽取几率越大。</li>
+                            <li><strong>嵌套</strong>：选项中可继续嵌入其他 <code>&#123;&#123;random_xxx&#125;&#125;</code>。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>4. 注入生命周期</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        <ul>
+                            <li><strong>每隔 x 轮</strong>：满足周期时才注入。</li>
+                            <li><strong>保持 y 轮</strong>：成功注入后沿用 y 轮，第 y+1 轮重新 roll。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-thumbtack"></i>
+                        <span>5. 重Roll 与 Pin</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        <ul>
+                            <li><strong>🎲 全部重Roll</strong>：立即重新随机所有宏组。</li>
+                            <li><strong>📌 固定</strong>：锁定某个宏，其他宏重Roll时它保持不变。</li>
+                            <li><strong>🔄 单独Roll</strong>：仅对当前宏重新抽取。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="random-tutorial-item">
+                    <div class="random-tutorial-item-title">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>6. AI 生成</span>
+                    </div>
+                    <div class="random-tutorial-item-body">
+                        切换到 <i class="fa-solid fa-wand-magic-sparkles"></i> 页，向 AI 描述需求，AI 生成后可编辑权重并一键导入到宏中。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- Footer -->
+    <div class="random-settings-footer">
+        <button class="random-btn random-btn--ghost" id="random-settings-reset-btn">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>重置为默认</span>
+        </button>
+        <button class="random-btn random-btn--primary" id="random-settings-save-btn">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>保存</span>
+        </button>
+    </div>
+</div>

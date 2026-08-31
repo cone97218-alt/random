@@ -1,0 +1,264 @@
+/* ══════════════════════════════════════════════════════
+   Random Macro Extension — Main Layout Styles
+   ══════════════════════════════════════════════════════ */
+
+@import url('./components.css');
+
+/* ── Base CSS Variables (Follow theme defaults) ────── */
+:root {
+    --random-bg:           rgba(30, 30, 30, 1);
+    --random-bg-panel:     rgba(22, 22, 22, 1);
+    --random-text:         rgba(220, 215, 205, 1);
+    --random-text-muted:   rgba(150, 140, 125, 1);
+    --random-border:       rgba(70, 65, 55, 1);
+    --random-accent:       rgba(180, 155, 120, 1);
+    --random-accent-hover: rgba(200, 175, 140, 1);
+    --random-danger:       rgba(195, 80, 70, 1);
+    --random-success:      rgba(90, 160, 100, 1);
+    --random-tag-bg:       rgba(55, 50, 42, 1);
+    --random-input-bg:     rgba(25, 25, 25, 1);
+    --random-radius:       8px;
+    --random-radius-sm:    4px;
+    --random-shadow:       0 8px 32px rgba(0,0,0,0.5);
+    --random-transition:   0.22s ease;
+}
+
+/* ── All text forced horizontal ──────────────────────── */
+.random-popup-content,
+.random-popup-content * {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+}
+
+/* ── Overlay ─────────────────────────────────────────── */
+.random-overlay {
+    position:        fixed;
+    top:             0;
+    left:            0;
+    width:           100vw;
+    height:          100vh;
+    z-index:         9999;
+    background:      rgba(0, 0, 0, 0.55);
+    opacity:         0;
+    transition:      opacity var(--random-transition);
+    pointer-events:  none;
+    display:         none;
+}
+
+.random-overlay.show {
+    opacity:        1;
+    display:        block;
+    pointer-events: auto;
+}
+
+/* ── Panel Content Box ───────────────────────────────── */
+.random-popup-content {
+    position:        absolute;
+    display:         flex;
+    flex-direction:  column;
+    background:      var(--random-bg);
+    border:          1px solid var(--random-border);
+    border-radius:   var(--random-radius);
+    box-shadow:      var(--random-shadow);
+    overflow:        hidden;
+    box-sizing:      border-box;
+    transition:      transform var(--random-transition), width var(--random-transition), height var(--random-transition);
+    max-width:       100vw;
+    max-height:      100vh;
+}
+
+/* Position variants (relative to whole page viewport) */
+.random-popup-content.position-normal {
+    top:             50%;
+    left:            50%;
+    transform:       translate(-50%, -50%) scale(0.9);
+    width:           var(--random-popup-width, 80%);
+    height:          var(--random-popup-height, 70%);
+    border-radius:   var(--random-radius);
+}
+.random-overlay.show .random-popup-content.position-normal {
+    transform:       translate(-50%, -50%) scale(1);
+}
+
+.random-popup-content.position-left {
+    top:             0;
+    left:            0;
+    bottom:          0;
+    height:          100%;
+    width:           var(--random-popup-width, 40%);
+    transform:       translateX(-100%);
+    border-radius:   0 var(--random-radius) var(--random-radius) 0;
+}
+.random-overlay.show .random-popup-content.position-left {
+    transform:       translateX(0);
+}
+
+.random-popup-content.position-right {
+    top:             0;
+    right:           0;
+    bottom:          0;
+    height:          100%;
+    width:           var(--random-popup-width, 40%);
+    transform:       translateX(100%);
+    border-radius:   var(--random-radius) 0 0 var(--random-radius);
+}
+.random-overlay.show .random-popup-content.position-right {
+    transform:       translateX(0);
+}
+
+.random-popup-content.position-top {
+    top:             0;
+    left:            0;
+    right:           0;
+    width:           100%;
+    height:          var(--random-popup-height, 40%);
+    transform:       translateY(-100%);
+    border-radius:   0 0 var(--random-radius) var(--random-radius);
+}
+.random-overlay.show .random-popup-content.position-top {
+    transform:       translateY(0);
+}
+
+.random-popup-content.position-bottom {
+    bottom:          0;
+    left:            0;
+    right:           0;
+    width:           100%;
+    height:          var(--random-popup-height, 40%);
+    transform:       translateY(100%);
+    border-radius:   var(--random-radius) var(--random-radius) 0 0;
+}
+.random-overlay.show .random-popup-content.position-bottom {
+    transform:       translateY(0);
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.random-header {
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             12px;
+    padding:         8px 14px;
+    background:      var(--random-bg-panel);
+    border-bottom:   1px solid var(--random-border);
+    flex-shrink:     0;
+    white-space:     nowrap;
+    user-select:     none;
+    min-height:      46px;
+    box-sizing:      border-box;
+}
+
+.random-header-left {
+    display:        flex;
+    flex-direction: row;
+    align-items:    center;
+    gap:            8px;
+    min-width:      60px;
+    flex:           0 0 auto;
+}
+
+.random-header-icon {
+    color:          var(--random-accent);
+    font-size:      1.2em;
+}
+
+.random-header-tabs {
+    display:        flex;
+    flex-direction: row;
+    align-items:    center;
+    justify-content: center;
+    gap:            8px;
+    flex:           1 1 auto;
+}
+
+.random-header-right {
+    display:        flex;
+    flex-direction: row;
+    align-items:    center;
+    justify-content: flex-end;
+    gap:            4px;
+    min-width:      60px;
+    flex:           0 0 auto;
+}
+
+/* ── Body ────────────────────────────────────────────── */
+.random-body {
+    flex:       1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding:    0;
+}
+
+.random-view {
+    height:     100%;
+    display:    flex;
+    flex-direction: column;
+}
+
+/* ── Toast ───────────────────────────────────────────── */
+.random-toast {
+    position:     fixed;
+    right:        20px;
+    z-index:      10000;
+    padding:      9px 16px;
+    border-radius: var(--random-radius-sm);
+    font-size:    0.85em;
+    color:        #fff;
+    white-space:  nowrap;
+    opacity:      0;
+    transform:    translateX(20px);
+    transition:   opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+}
+.random-toast.show {
+    opacity:   1;
+    transform: translateX(0);
+}
+.random-toast--info    { background: rgba(70, 100, 160, 0.95); }
+.random-toast--success { background: rgba(60, 130, 80,  0.95); }
+.random-toast--error   { background: rgba(170, 60, 55,  0.95); }
+
+/* ── QR Bar / Chat Trigger Button ────────────────────── */
+#random-qr-btn {
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+#random-qr-btn:hover {
+    color: var(--random-accent, var(--SmartThemeQuoteColor, #d1a877));
+    transform: scale(1.08);
+}
+
+#random-qr-btn:active {
+    transform: scale(0.92);
+}
+
+/* Fallback: when placed in #leftSendForm next to options_button */
+#leftSendForm #random-qr-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--bottomFormIconSize, 1.2em);
+    width: var(--bottomFormBlockSize, 35px);
+    height: var(--bottomFormBlockSize, 35px);
+    color: var(--SmartThemeBodyColor, inherit);
+    opacity: 0.75;
+}
+
+#leftSendForm #random-qr-btn:hover {
+    opacity: 1;
+}
+
+/* When placed in Quick Reply bar */
+#qr--bar #random-qr-btn,
+.qr--buttons #random-qr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 28px;
+    padding: 2px 8px;
+}
+

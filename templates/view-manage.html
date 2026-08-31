@@ -1,0 +1,200 @@
+<!-- Random Macro Extension - Manage View -->
+<div class="random-manage-wrap">
+
+    <!-- Toolbar -->
+    <div class="random-toolbar">
+        <button class="random-btn random-btn--primary" id="random-add-group-btn" title="新建宏配置组">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        <div class="random-toolbar-spacer"></div>
+        <button class="random-btn random-btn--secondary" id="random-reroll-all-btn" title="重新随机所有启用的宏组">
+            <i class="fa-solid fa-rotate"></i>
+        </button>
+    </div>
+
+    <!-- Group List -->
+    <div class="random-group-list" id="random-group-list">
+        <!-- Groups rendered here by JS -->
+        <div class="random-empty-hint" id="random-groups-empty">
+            <i class="fa-solid fa-dice fa-2x"></i>
+            <span>还没有宏配置组，点击「新建宏组」开始</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Group Edit Modal ── -->
+<div class="random-modal-overlay" id="random-group-modal" style="display:none;">
+    <div class="random-modal">
+        <div class="random-modal-header">
+            <span id="random-group-modal-title">新建宏配置组</span>
+            <button class="random-icon-btn" id="random-group-modal-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="random-modal-body">
+
+            <!-- Group name -->
+            <div class="random-field">
+                <label class="random-field-label">组名称</label>
+                <input type="text" class="random-input" id="random-gm-name" placeholder="例如：天气系统" />
+            </div>
+
+            <!-- Scope -->
+            <div class="random-field">
+                <label class="random-field-label">作用范围</label>
+                <select class="random-select" id="random-gm-scope">
+                    <option value="global">全局</option>
+                    <option value="character">当前角色卡</option>
+                </select>
+            </div>
+
+            <!-- Enabled -->
+            <div class="random-field random-field--inline">
+                <label class="random-field-label">启用</label>
+                <label class="random-toggle">
+                    <input type="checkbox" id="random-gm-enabled" checked />
+                    <span class="random-toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- Injection Role -->
+            <div class="random-field">
+                <label class="random-field-label">注入身份</label>
+                <select class="random-select" id="random-gm-role">
+                    <option value="0">System</option>
+                    <option value="1">User</option>
+                    <option value="2">Assistant</option>
+                </select>
+            </div>
+
+            <!-- Injection Depth -->
+            <div class="random-field">
+                <label class="random-field-label">注入深度</label>
+                <input type="number" class="random-input random-input--narrow" id="random-gm-depth"
+                    min="0" step="1" value="4" />
+                <span class="random-field-hint">从末尾往前数，0=末尾</span>
+            </div>
+
+            <!-- Lifecycle override -->
+            <div class="random-field random-field--inline">
+                <label class="random-field-label">使用全局周期设置</label>
+                <label class="random-toggle">
+                    <input type="checkbox" id="random-gm-lifecycle-global" checked />
+                    <span class="random-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div id="random-gm-lifecycle-custom" style="display:none;">
+                <div class="random-field">
+                    <label class="random-field-label">每 x 轮注入一次</label>
+                    <input type="number" class="random-input random-input--narrow" id="random-gm-every-x"
+                        min="1" step="1" placeholder="留空=每轮" />
+                </div>
+                <div class="random-field">
+                    <label class="random-field-label">注入后保持 y 轮</label>
+                    <input type="number" class="random-input random-input--narrow" id="random-gm-keep-y"
+                        min="0" step="1" placeholder="留空=不保持" />
+                </div>
+            </div>
+
+            <!-- Template -->
+            <div class="random-field">
+                <label class="random-field-label">
+                    注入内容模板
+                    <span class="random-field-hint">用 &#123;&#123;random_宏ID&#125;&#125; 嵌入宏</span>
+                </label>
+                <textarea class="random-textarea" id="random-gm-template" rows="4"
+                    placeholder="今天的天气是&#123;&#123;random_天气&#125;&#125;，气温&#123;&#123;random_温度&#125;&#125;度。"></textarea>
+            </div>
+
+            <!-- Macros list within this group -->
+            <div class="random-field">
+                <div class="random-field-label-row">
+                    <label class="random-field-label">宏列表</label>
+                    <div class="random-field-actions">
+                        <button class="random-btn random-btn--sm" id="random-gm-scan-btn" title="从上方模板文本中扫描 &#123;&#123;random_xxx&#125;&#125; 并自动补齐宏">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>扫描模板宏</span>
+                        </button>
+                        <button class="random-btn random-btn--sm" id="random-gm-add-macro-btn">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>添加宏</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="random-macro-list" id="random-gm-macro-list">
+                    <!-- Macros rendered here -->
+                </div>
+            </div>
+
+        </div>
+        <div class="random-modal-footer">
+            <button class="random-btn random-btn--ghost" id="random-group-modal-cancel">
+                <i class="fa-solid fa-ban"></i>
+                <span>取消</span>
+            </button>
+            <button class="random-btn random-btn--primary" id="random-group-modal-save">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>保存</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Macro Edit Modal ── -->
+<div class="random-modal-overlay" id="random-macro-modal" style="display:none;">
+    <div class="random-modal">
+        <div class="random-modal-header">
+            <span id="random-macro-modal-title">编辑宏</span>
+            <button class="random-icon-btn" id="random-macro-modal-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="random-modal-body">
+
+            <!-- Macro ID -->
+            <div class="random-field">
+                <label class="random-field-label">
+                    宏 ID
+                    <span class="random-field-hint">在模板中用 &#123;&#123;random_这里&#125;&#125; 调用</span>
+                </label>
+                <input type="text" class="random-input" id="random-mm-id"
+                    placeholder="例如：天气" pattern="[a-zA-Z0-9\u4e00-\u9fff_-]+" />
+            </div>
+
+            <!-- Trigger Probability -->
+            <div class="random-field">
+                <label class="random-field-label">触发概率 (%)</label>
+                <input type="number" class="random-input random-input--narrow" id="random-mm-prob"
+                    min="0" max="100" step="1" value="100" />
+                <span class="random-field-hint">0=从不 100=始终</span>
+            </div>
+
+            <!-- Options -->
+            <div class="random-field">
+                <div class="random-field-label-row">
+                    <label class="random-field-label">选项列表</label>
+                    <button class="random-btn random-btn--sm" id="random-mm-add-option-btn">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>添加选项</span>
+                    </button>
+                </div>
+                <div class="random-option-list" id="random-mm-option-list">
+                    <!-- Options rendered here -->
+                </div>
+            </div>
+
+        </div>
+        <div class="random-modal-footer">
+            <button class="random-btn random-btn--ghost" id="random-macro-modal-cancel">
+                <i class="fa-solid fa-ban"></i>
+                <span>取消</span>
+            </button>
+            <button class="random-btn random-btn--primary" id="random-macro-modal-save">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>保存宏</span>
+            </button>
+        </div>
+    </div>
+</div>

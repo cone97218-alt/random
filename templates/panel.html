@@ -1,0 +1,34 @@
+<!-- Random Macro Extension - Main Panel -->
+<div id="random-popup-overlay" class="random-overlay" style="display:none;">
+    <div class="random-popup-content" id="random-popup-content">
+        <!-- Header -->
+        <div class="random-header">
+            <div class="random-header-left">
+                <i class="fa-solid fa-dice random-header-icon" title="随机宏引擎"></i>
+            </div>
+            <div class="random-header-tabs">
+                <button class="random-tab-btn active" data-view="manage" title="宏管理">
+                    <i class="fa-solid fa-list"></i>
+                </button>
+                <button class="random-tab-btn" data-view="generate" title="AI 生成">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
+            </div>
+            <div class="random-header-right">
+                <button class="random-icon-btn" id="random-settings-btn" title="设置与教程">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button class="random-icon-btn" id="random-close-btn" title="关闭">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- View Container -->
+        <div class="random-body">
+            <div class="random-view" id="random-view-manage"></div>
+            <div class="random-view" id="random-view-generate" style="display:none;"></div>
+            <div class="random-view" id="random-view-settings" style="display:none;"></div>
+        </div>
+    </div>
+</div>

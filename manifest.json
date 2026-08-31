@@ -1,0 +1,15 @@
+{
+  "display_name": "随机宏引擎",
+  "loading_order": 50,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "styles/main.css",
+  "author": "random-macro",
+  "version": "1.0.0",
+  "homePage": "",
+  "auto_update": false,
+  "hooks": {
+    "activate": "init"
+  }
+}

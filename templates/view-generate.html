@@ -1,0 +1,69 @@
+<!-- Random Macro Extension - AI Generate View -->
+<div class="random-generate-wrap">
+
+    <!-- Target group selector -->
+    <div class="random-generate-header">
+        <div class="random-field random-field--inline random-field--grow">
+            <label class="random-field-label">目标宏组</label>
+            <select class="random-select random-select--grow" id="random-gen-group-select">
+                <option value="">— 选择宏配置组 —</option>
+            </select>
+        </div>
+        <div class="random-field random-field--inline">
+            <label class="random-field-label">目标宏</label>
+            <select class="random-select" id="random-gen-macro-select">
+                <option value="__all__">全部宏</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Chat area -->
+    <div class="random-generate-chat" id="random-gen-chat">
+        <div class="random-gen-hint" id="random-gen-hint">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>选择目标宏组后，在下方输入对 AI 的描述要求</span>
+        </div>
+    </div>
+
+    <!-- AI result preview & edit -->
+    <div class="random-generate-result" id="random-gen-result" style="display:none;">
+        <div class="random-generate-result-header">
+            <span class="random-generate-result-label">
+                <i class="fa-solid fa-list-check"></i>
+                <span>AI 返回结果（可编辑）</span>
+            </span>
+            <button class="random-btn random-btn--sm" id="random-gen-clear-result-btn">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+        <div class="random-option-edit-list" id="random-gen-option-edit-list">
+            <!-- Editable option rows rendered here -->
+        </div>
+        <div class="random-generate-result-footer">
+            <button class="random-btn random-btn--sm random-btn--secondary" id="random-gen-add-option-btn">
+                <i class="fa-solid fa-plus"></i>
+                <span>添加一行</span>
+            </button>
+            <div class="random-toolbar-spacer"></div>
+            <button class="random-btn random-btn--primary" id="random-gen-import-btn">
+                <i class="fa-solid fa-file-import"></i>
+                <span>确认导入</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="random-generate-input-area">
+        <textarea class="random-textarea random-gen-textarea" id="random-gen-input"
+            placeholder="描述你想要的宏选项内容，例如：生成10个描述天气的短句，包含晴天、雨天、阴天等变化..." rows="3"></textarea>
+        <div class="random-generate-actions">
+            <button class="random-btn random-btn--primary" id="random-gen-send-btn" title="发送">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+            <button class="random-btn random-btn--danger" id="random-gen-abort-btn" style="display:none;" title="停止">
+                <i class="fa-solid fa-stop"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
