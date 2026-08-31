@@ -1324,21 +1324,21 @@
     flex-direction: row;
     align-items:    flex-start;
     gap:            10px;
-    width:          100%;
-    max-width:      100%;
     box-sizing:     border-box;
     white-space:    pre-wrap;
     word-break:     break-word;
 }
 .random-gen-bubble--ai {
     align-self:     stretch;
+    width:          100%;
     margin-right:   0;
 }
 .random-gen-bubble--user {
-    align-self:     stretch;
-    margin-left:    0;
-    flex-direction: row;
+    align-self:      flex-end;
+    margin-left:     auto;
+    flex-direction:  row;
     justify-content: flex-end;
+    max-width:       85%;
 }
 .random-gen-bubble-avatar {
     width:           28px;
@@ -1361,7 +1361,9 @@
     min-width:       0;
 }
 .random-gen-bubble--user .random-gen-bubble-content {
+    flex:            0 1 auto;
     align-items:     flex-end;
+    max-width:       100%;
 }
 .random-gen-bubble-text {
     padding:         10px 14px;
@@ -1378,8 +1380,10 @@
     background:      var(--random-tag-bg);
     border-radius:   var(--random-radius) 0 var(--random-radius) var(--random-radius);
     border-color:    var(--random-border);
-    width:           100%;
+    width:           fit-content;
+    max-width:       100%;
     box-sizing:      border-box;
+    text-align:      left;
 }
 .random-gen-bubble-footer {
     display:         flex;
@@ -1389,6 +1393,9 @@
     padding:         2px 4px;
     font-size:       0.75em;
     color:           var(--random-text-muted);
+}
+.random-gen-bubble--user .random-gen-bubble-footer {
+    justify-content: flex-end;
 }
 .random-gen-swipe-counter {
     font-size:       0.75em;
