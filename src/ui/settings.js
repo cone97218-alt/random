@@ -52,6 +52,11 @@ function _loadValues(container) {
     _val(container, '#random-setting-every-x',  lc.everyXRounds !== null && lc.everyXRounds !== undefined ? lc.everyXRounds : '');
     _val(container, '#random-setting-keep-y',   lc.keepYRounds  !== null && lc.keepYRounds  !== undefined ? lc.keepYRounds  : '');
 
+    // Prompt mode
+    const promptMode = s.aiPromptMode || 'components';
+    _val(container, '#random-setting-prompt-mode', promptMode);
+    _updatePromptModeUI(container, promptMode);
+
     // Misc settings
     const enableCatCheck = container.querySelector('#random-setting-enable-category-grouping');
     if (enableCatCheck) enableCatCheck.checked = misc.enableCategoryGrouping !== false;
@@ -74,9 +79,27 @@ function _loadValues(container) {
     });
 }
 
+function _updatePromptModeUI(container, mode) {
+    const isPreset = mode === 'preset';
+    const compHint = container.querySelector('#random-prompt-components-hint');
+    const presetHint = container.querySelector('#random-prompt-preset-hint');
+    const compContainer = container.querySelector('#random-prompt-components-container');
+
+    if (compHint) compHint.style.display = isPreset ? 'none' : '';
+    if (presetHint) presetHint.style.display = isPreset ? '' : 'none';
+    if (compContainer) compContainer.style.opacity = isPreset ? '0.45' : '1';
+}
+
 // ── Bind events ───────────────────────────────────────────────────────────────
 
 function _bindEvents(container) {
+    // Prompt mode toggle
+    container.querySelector('#random-setting-prompt-mode')?.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        _updatePromptModeUI(container, mode);
+        _save(container, true);
+    });
+
     // Collapsible sections toggle persistence
     container.querySelectorAll('.random-settings-details').forEach(details => {
         details.addEventListener('toggle', () => {
@@ -139,6 +162,9 @@ function _save(container, silent = false) {
     const keepY  = container.querySelector('#random-setting-keep-y')?.value.trim();
     s.globalLifecycle.everyXRounds = everyX !== '' ? Number(everyX) : null;
     s.globalLifecycle.keepYRounds  = keepY  !== '' ? Number(keepY)  : null;
+
+    // Prompt mode
+    s.aiPromptMode = container.querySelector('#random-setting-prompt-mode')?.value || 'components';
 
     // Misc settings
     s.misc.enableCategoryGrouping = container.querySelector('#random-setting-enable-category-grouping')?.checked !== false;

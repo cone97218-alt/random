@@ -213,6 +213,88 @@ function _readMainChatHistory(x, regexStr, regexReplace = '') {
 
 // ── Main builder ──────────────────────────────────────────────────────────────
 
+async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefText, options) {
+    const messages = [];
+
+    try {
+        const ctx = getContext();
+        const { prepareOpenAIMessages, setOpenAIMessages, setOpenAIMessageExamples } = await import('../../../../../openai.js');
+        const { characters, this_chid, name2 } = await import('../../../../../script.js');
+
+        const char = (characters && this_chid !== undefined && characters[this_chid]) ? characters[this_chid] : {};
+        const charData = char.data || {};
+        const rawChat = ctx.chat || [];
+
+        const [presetChat] = await prepareOpenAIMessages({
+            name2: name2 || char.name || 'Assistant',
+            charDescription: char.description || charData.description || '',
+            charPersonality: char.personality || charData.personality || '',
+            scenario: char.scenario || charData.scenario || '',
+            worldInfoBefore: '',
+            worldInfoAfter: '',
+            bias: '',
+            type: 'normal',
+            quietPrompt: '',
+            quietImage: '',
+            extensionPrompts: {},
+            cyclePrompt: '',
+            systemPromptOverride: '',
+            jailbreakPromptOverride: '',
+            messages: typeof setOpenAIMessages === 'function' ? setOpenAIMessages(rawChat) : [],
+            messageExamples: typeof setOpenAIMessageExamples === 'function'
+                ? setOpenAIMessageExamples(charData.mes_example ? [charData.mes_example] : [])
+                : [],
+        }, false);
+
+        if (Array.isArray(presetChat) && presetChat.length > 0) {
+            presetChat.forEach(msg => {
+                let text = '';
+                if (typeof msg.content === 'string') {
+                    text = msg.content;
+                } else if (Array.isArray(msg.content)) {
+                    text = msg.content.map(c => c.text || '').join('');
+                }
+                if (text && text.trim()) {
+                    messages.push({ role: msg.role || 'system', content: text.trim() });
+                }
+            });
+        }
+    } catch (err) {
+        console.warn('[Random Prompt] prepareOpenAIMessages from preset failed, falling back:', err);
+    }
+
+    // Append macro system task specification & injected macro group context
+    const taskSpec = [
+        '【随机宏引擎生成任务】',
+        '你是一个SillyTavern随机宏引擎专家助手。请根据上述上下文设定与用户指令生成随机宏或宏配置组：',
+        '- 宏标识 id 统一使用直观中文（如 `天气`、`角色动作`），引用格式固定为 `{{random_宏名}}`。',
+        '- 宏配置组完整设计：直接输出标准 JSON（含 isFullGroup: true, groupName: "组名", template: "提示词模板", injectionRole: 0, injectionDepth: 4, macros: [ { id, triggerProbability, options: [ { text, weight } ] } ]）。',
+        '- 单宏候选项生成：每行输出一个文本候选项。',
+    ];
+
+    if (injectedRefText) {
+        taskSpec.push('\n' + injectedRefText);
+    }
+
+    messages.push({ role: 'system', content: taskSpec.join('\n') });
+
+    // Multi-turn extension chat history
+    if (Array.isArray(extChatHistory) && extChatHistory.length > 0) {
+        extChatHistory.forEach(turn => {
+            if (turn.prompt) messages.push({ role: 'user', content: turn.prompt });
+            const aiReply = turn.swipes?.[turn.activeIndex];
+            if (aiReply) messages.push({ role: 'assistant', content: aiReply });
+        });
+    }
+
+    // Current user prompt
+    if (userPrompt) {
+        messages.push({ role: 'user', content: userPrompt });
+    }
+
+    return messages;
+}
+
 /**
  * Build the full messages[] array for one AI generation request.
  *
@@ -223,6 +305,15 @@ function _readMainChatHistory(x, regexStr, regexReplace = '') {
  */
 export async function buildMessages(userPrompt, extChatHistory = [], options = {}) {
     const s = getSettings();
+    const promptMode = s.aiPromptMode || 'components';
+
+    const injectedIds = options.injectedGroupIds || options.injectedGroupId || [];
+    const injectedRefText = formatExistingGroupForPrompt(injectedIds);
+
+    if (promptMode === 'preset') {
+        return await _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefText, options);
+    }
+
     const components = (s.aiPromptComponents || DEFAULT_PROMPT_COMPONENTS)
         .filter(c => c.enabled !== false)
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

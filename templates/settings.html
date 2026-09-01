@@ -78,17 +78,32 @@
             <span>提示词</span>
         </summary>
         <div class="random-settings-body">
-            <div class="random-settings-hint-row">
+            <div class="random-settings-row">
+                <label class="random-settings-label">提示词模式</label>
+                <div class="random-settings-control">
+                    <select class="random-select" id="random-setting-prompt-mode">
+                        <option value="components">扩展自定义组件管道 (推荐)</option>
+                        <option value="preset">直接用酒馆预设 (跟随当前激活预设)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="random-settings-hint-row" id="random-prompt-components-hint">
                 <i class="fa-solid fa-circle-info"></i>
-                <span>拖动手柄调整顺序，点击编辑图标修改可编辑条目内容。</span>
+                <span>自定义组件模式：可自由拖拽排序、组合角色设定、世界书与主聊天上下文。</span>
+            </div>
+            <div class="random-settings-hint-row" id="random-prompt-preset-hint" style="display:none; color:var(--random-accent);">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>已启用「直接用酒馆预设」：将直接复用酒馆当前启用的预设配置（含主提示词、Jailbreak、角色与上下文顺序）。</span>
             </div>
             <!-- Component list rendered by settings.js -->
-            <div class="random-prompt-component-list" id="random-prompt-component-list"></div>
-            <div class="random-settings-row" style="margin-top:8px;">
-                <button class="random-btn random-btn--sm random-btn--secondary" id="random-add-prompt-component-btn">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>添加自定义条目</span>
-                </button>
+            <div id="random-prompt-components-container">
+                <div class="random-prompt-component-list" id="random-prompt-component-list"></div>
+                <div class="random-settings-row" style="margin-top:8px;">
+                    <button class="random-btn random-btn--sm random-btn--secondary" id="random-add-prompt-component-btn">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>添加自定义条目</span>
+                    </button>
+                </div>
             </div>
         </div>
     </details>
