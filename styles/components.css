@@ -2145,10 +2145,9 @@ details:not([open]) .random-gen-chevron {
     display:        flex;
     flex-direction: column;
     gap:            8px;
-    max-height:     48%;
-    min-height:     120px;
-    flex:           0 1 auto;
-    overflow-y:     auto;
+    height:         75%;
+    max-height:     75%;
+    flex-shrink:    0;
     box-sizing:     border-box;
     background:     var(--random-bg-panel);
 }
