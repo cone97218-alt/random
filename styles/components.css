@@ -1700,9 +1700,16 @@
     white-space: nowrap;
     overflow:    hidden;
     text-overflow: ellipsis;
+    cursor:      pointer;
+    transition:  color var(--random-transition);
+}
+.random-pc-label:hover {
+    color:       var(--random-accent);
+    text-decoration: underline;
 }
 .random-pc-actions {
     display:     flex;
+    align-items: center;
     gap:         4px;
     flex-shrink: 0;
 }
@@ -2097,6 +2104,38 @@ details:not([open]) .random-gen-chevron {
     color:           var(--random-text-muted);
 }
 
+/* ── User Bubble Inline Edit ── */
+.random-user-edit-wrap {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    width:          100%;
+    box-sizing:     border-box;
+    padding:        4px 0;
+}
+.random-user-edit-textarea {
+    width:          100% !important;
+    box-sizing:     border-box;
+    min-height:     48px;
+    max-height:     200px;
+    font-size:      0.85em;
+    line-height:    1.5;
+    padding:        8px 10px;
+    resize:         none;
+    overflow-y:     auto;
+    border-radius:  var(--random-radius-sm);
+    background:     var(--random-input-bg);
+    color:          var(--random-text);
+    border:         1px solid var(--random-accent);
+}
+.random-user-edit-actions {
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
+    justify-content: flex-end;
+    gap:             6px;
+}
+
 /* ── Result Modal & Option Rows ──────────────────────── */
 .random-generate-result {
     border-top:     1px solid var(--random-border);
@@ -2247,20 +2286,26 @@ details:not([open]) .random-gen-chevron {
 }
 .random-generate-input-area {
     border-top:     1px solid var(--random-border);
-    padding:        10px 14px;
+    padding:        8px 12px;
     display:        flex;
     flex-direction: row;
-    align-items:    center;
+    align-items:    flex-end;
     gap:            8px;
     flex-shrink:    0;
     box-sizing:     border-box;
+    background:     var(--random-bg-panel);
 }
 .random-gen-textarea {
     flex:           1;
     resize:         none;
     min-height:     38px;
-    max-height:     100px;
+    max-height:     180px;
+    height:         38px;
     box-sizing:     border-box;
+    padding:        8px 10px;
+    line-height:    1.45;
+    overflow-y:     auto;
+    transition:     border-color var(--random-transition);
 }
 .random-generate-actions {
     display:        flex;

@@ -222,19 +222,53 @@ function _buildComponentRow(comp, idx, container) {
     toggle.appendChild(chk);
     toggle.appendChild(slider);
 
-    // Label
+    // Label (Click or Double-Click to rename)
     const label = document.createElement('span');
     label.className = 'random-pc-label';
     label.textContent = comp.label || comp.id;
+    label.title = '点击或展开编辑可修改条目名称';
 
-    // Edit expand (for editable items: main_prompt, custom)
+    label.addEventListener('click', () => {
+        const currentName = comp.label || comp.id;
+        const newName = prompt(`修改提示词条目名称：`, currentName);
+        if (newName !== null && newName.trim()) {
+            comp.label = newName.trim();
+            label.textContent = comp.label;
+            _saveComponentField(container, comp.id, 'label', comp.label);
+            showToast(`已将条目重命名为「${comp.label}」`, 'success');
+        }
+    });
+
+    // Actions (Move up/down, Edit, Delete)
     const actions = document.createElement('div');
     actions.className = 'random-pc-actions';
+
+    // Move Up button (for mobile touch & quick sorting)
+    const moveUpBtn = document.createElement('button');
+    moveUpBtn.className = 'random-icon-btn--xs random-pc-move-btn';
+    moveUpBtn.title = '上移';
+    moveUpBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+    moveUpBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _moveComponent(container, comp.id, 'up');
+    });
+    actions.appendChild(moveUpBtn);
+
+    // Move Down button (for mobile touch & quick sorting)
+    const moveDownBtn = document.createElement('button');
+    moveDownBtn.className = 'random-icon-btn--xs random-pc-move-btn';
+    moveDownBtn.title = '下移';
+    moveDownBtn.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+    moveDownBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _moveComponent(container, comp.id, 'down');
+    });
+    actions.appendChild(moveDownBtn);
 
     if (comp.editable || !comp.builtinKey) {
         const editBtn = document.createElement('button');
         editBtn.className = 'random-icon-btn--xs';
-        editBtn.title = '编辑内容';
+        editBtn.title = '编辑内容与名称';
         editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
         editBtn.addEventListener('click', () => {
             const existing = row.querySelector('.random-pc-editor');
@@ -291,9 +325,54 @@ function _buildComponentRow(comp, idx, container) {
     return row;
 }
 
+function _moveComponent(container, compId, direction) {
+    const s = getSettings();
+    if (!s.aiPromptComponents) s.aiPromptComponents = DEFAULT_PROMPT_COMPONENTS.map(c => ({ ...c }));
+    const comps = s.aiPromptComponents.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const idx = comps.findIndex(c => c.id === compId);
+    if (idx === -1) return;
+
+    if (direction === 'up' && idx > 0) {
+        const temp = comps[idx - 1];
+        comps[idx - 1] = comps[idx];
+        comps[idx] = temp;
+    } else if (direction === 'down' && idx < comps.length - 1) {
+        const temp = comps[idx + 1];
+        comps[idx + 1] = comps[idx];
+        comps[idx] = temp;
+    } else {
+        return;
+    }
+
+    comps.forEach((c, i) => { c.order = i; });
+    s.aiPromptComponents = comps;
+    saveSettings();
+    _renderComponentList(container);
+}
+
 function _appendEditor(row, comp, container) {
     const editor = document.createElement('div');
     editor.className = 'random-pc-editor';
+
+    // Editable name input
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'random-settings-row';
+    nameWrap.style.marginBottom = '6px';
+    nameWrap.innerHTML = '<label class="random-settings-label" style="min-width:70px;">条目名称</label>';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'random-input';
+    nameInput.value = comp.label || '';
+    nameInput.placeholder = '输入条目显示名称...';
+    nameInput.addEventListener('input', () => {
+        comp.label = nameInput.value;
+        _saveComponentField(container, comp.id, 'label', nameInput.value);
+        const lbl = row.querySelector('.random-pc-label');
+        if (lbl) lbl.textContent = nameInput.value || comp.id;
+    });
+    nameWrap.appendChild(nameInput);
+    editor.appendChild(nameWrap);
+
     const ta = document.createElement('textarea');
     ta.className = 'random-textarea random-pc-editor-textarea';
     ta.rows = 5;

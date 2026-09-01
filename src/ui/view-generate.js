@@ -244,9 +244,23 @@ function _onGroupSelected(container, groupId) {
     });
 }
 
+function _autoResizeTextarea(ta) {
+    if (!ta) return;
+    ta.style.height = 'auto';
+    const nextH = Math.min(Math.max(ta.scrollHeight, 38), 180);
+    ta.style.height = `${nextH}px`;
+}
+
 // ── Events ────────────────────────────────────────────────────────────────────
 
 function _bindEvents(container) {
+    const inputEl = container.querySelector('#random-gen-input');
+
+    // Auto-resize input textarea
+    if (inputEl) {
+        inputEl.addEventListener('input', () => _autoResizeTextarea(inputEl));
+    }
+
     container.querySelector('#random-gen-group-select')?.addEventListener('change', e => {
         _onGroupSelected(container, e.target.value);
         container.querySelector('#random-gen-hint').style.display = e.target.value ? 'none' : '';
@@ -288,19 +302,23 @@ function _bindEvents(container) {
                 }
             }
 
-            const inputEl = container.querySelector('#random-gen-input');
             if (inputEl) {
                 inputEl.value = templateText;
+                _autoResizeTextarea(inputEl);
                 inputEl.focus();
             }
         });
     });
 
     container.querySelector('#random-gen-send-btn')?.addEventListener('click', () => {
-        const userPrompt = container.querySelector('#random-gen-input')?.value.trim();
+        const userPrompt = inputEl?.value.trim();
         if (!userPrompt) {
             showToast('请输入需求描述', 'error');
             return;
+        }
+        if (inputEl) {
+            inputEl.value = '';
+            _autoResizeTextarea(inputEl);
         }
         _startGeneration(container, userPrompt, false);
     });
@@ -332,11 +350,15 @@ function _bindEvents(container) {
     });
 
     // Send on Ctrl+Enter
-    container.querySelector('#random-gen-input')?.addEventListener('keydown', e => {
+    inputEl?.addEventListener('keydown', e => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            const userPrompt = container.querySelector('#random-gen-input')?.value.trim();
-            if (userPrompt) _startGeneration(container, userPrompt, false);
+            const userPrompt = inputEl.value.trim();
+            if (userPrompt) {
+                inputEl.value = '';
+                _autoResizeTextarea(inputEl);
+                _startGeneration(container, userPrompt, false);
+            }
         }
     });
 }
@@ -456,21 +478,84 @@ function _createUserBubble(turnIdx, userPrompt, container, injectedGroupIds = []
             ${injectedTagHtml}
             <div class="random-gen-bubble-text">${escapeHtml(userPrompt)}</div>
             <div class="random-gen-bubble-footer">
-                <button class="random-icon-btn--xs random-user-edit" title="重新编辑并重Roll此消息"><i class="fa-solid fa-pen"></i></button>
+                <button class="random-icon-btn--xs random-user-edit" title="编辑原有内容并重新生成"><i class="fa-solid fa-pen"></i></button>
                 <button class="random-icon-btn--xs random-user-delete random-icon-btn--danger" title="删除此条问答"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
         <div class="random-gen-bubble-avatar"><i class="fa-solid fa-user"></i></div>
     `;
 
-    // Edit prompt & reroll
+    // In-place inline edit prompt & reroll
     userBubble.querySelector('.random-user-edit')?.addEventListener('click', () => {
+        const contentEl = userBubble.querySelector('.random-gen-bubble-content');
         const textEl = userBubble.querySelector('.random-gen-bubble-text');
-        const currentText = _chatHistory[turnIdx]?.prompt || textEl.textContent;
-        const newText = prompt('编辑用户输入并重新生成：', currentText);
-        if (newText !== null && newText.trim() !== '') {
-            _startGeneration(container, newText.trim(), true, turnIdx);
-        }
+        const footerEl = userBubble.querySelector('.random-gen-bubble-footer');
+        const currentText = _chatHistory[turnIdx]?.prompt || textEl?.textContent || '';
+
+        if (!contentEl || contentEl.querySelector('.random-user-edit-wrap')) return;
+
+        const editWrap = document.createElement('div');
+        editWrap.className = 'random-user-edit-wrap';
+        editWrap.innerHTML = `
+            <textarea class="random-textarea random-user-edit-textarea" placeholder="编辑用户输入..."></textarea>
+            <div class="random-user-edit-actions">
+                <button class="random-btn random-btn--xs random-btn--secondary random-user-edit-cancel" type="button">取消</button>
+                <button class="random-btn random-btn--xs random-btn--primary random-user-edit-save" type="button">
+                    <i class="fa-solid fa-rotate"></i> 重新生成 (Ctrl+Enter)
+                </button>
+            </div>
+        `;
+
+        const ta = editWrap.querySelector('.random-user-edit-textarea');
+        ta.value = currentText;
+
+        const resizeEditTa = () => {
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(Math.max(ta.scrollHeight, 48), 200) + 'px';
+        };
+        ta.addEventListener('input', resizeEditTa);
+
+        if (textEl) textEl.style.display = 'none';
+        if (footerEl) footerEl.style.display = 'none';
+        contentEl.appendChild(editWrap);
+
+        resizeEditTa();
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+
+        const cancelEdit = () => {
+            editWrap.remove();
+            if (textEl) textEl.style.display = '';
+            if (footerEl) footerEl.style.display = '';
+        };
+
+        const submitEdit = () => {
+            const newText = ta.value.trim();
+            if (!newText) {
+                showToast('输入内容不能为空', 'error');
+                return;
+            }
+            editWrap.remove();
+            if (textEl) {
+                textEl.textContent = newText;
+                textEl.style.display = '';
+            }
+            if (footerEl) footerEl.style.display = '';
+            _startGeneration(container, newText, true, turnIdx);
+        };
+
+        editWrap.querySelector('.random-user-edit-cancel')?.addEventListener('click', cancelEdit);
+        editWrap.querySelector('.random-user-edit-save')?.addEventListener('click', submitEdit);
+
+        ta.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                submitEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        });
     });
 
     // Delete turn
