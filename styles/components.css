@@ -1756,12 +1756,66 @@
     height:         100%;
     overflow:       hidden;
 }
+/* ── AI Generate View Collapsibles ── */
+.random-gen-collapsible {
+    background:     var(--random-bg-panel);
+    border-bottom:  1px solid var(--random-border);
+    flex-shrink:    0;
+    user-select:    none;
+}
+.random-gen-collapsible-summary {
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         6px 12px;
+    cursor:          pointer;
+    background:      var(--random-bg-panel);
+    transition:      background var(--random-transition);
+    list-style:      none;
+}
+.random-gen-collapsible-summary::-webkit-details-marker {
+    display: none;
+}
+.random-gen-collapsible-summary:hover {
+    background:      var(--random-tag-bg);
+}
+.random-gen-collapsible-title {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    font-size:   0.84em;
+    font-weight: 600;
+    color:       var(--random-text);
+}
+.random-gen-summary-badge {
+    font-size:     0.75em;
+    font-weight:   normal;
+    color:         var(--random-accent);
+    background:    var(--random-input-bg);
+    border:        1px solid var(--random-border);
+    border-radius: 10px;
+    padding:       1px 6px;
+}
+.random-gen-chevron {
+    font-size:   0.8em;
+    color:       var(--random-text-muted);
+    transition:  transform var(--random-transition);
+}
+details:not([open]) .random-gen-chevron {
+    transform:   rotate(-90deg);
+}
+.random-gen-collapsible-body {
+    display:        flex;
+    flex-direction: column;
+}
+
 .random-generate-header {
     display:        flex;
     flex-direction: row;
     align-items:    center;
     gap:            12px;
-    padding:        10px 14px;
+    padding:        8px 12px;
     border-bottom:  1px solid var(--random-border);
     flex-shrink:    0;
     flex-wrap:      wrap;
@@ -1771,7 +1825,6 @@
 /* ── Injected Macro Group Slot Bar ── */
 .random-gen-slot-bar {
     background:     var(--random-bg-panel);
-    border-bottom:  1px solid var(--random-border);
     padding:        6px 12px;
     display:        flex;
     flex-direction: column;
@@ -1830,12 +1883,42 @@
     white-space: nowrap;
 }
 
-/* ── Prompt Functional Slots Bar ── */
+/* ── Prompt Functional Slots Collapsible ── */
+.random-gen-chips-details {
+    background:    var(--random-bg-panel);
+    border-top:    1px solid var(--random-border);
+    flex-shrink:   0;
+    user-select:   none;
+}
+.random-gen-chips-summary {
+    display:         flex;
+    flex-direction:  row;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         4px 12px;
+    cursor:          pointer;
+    font-size:       0.78em;
+    color:           var(--random-text-muted);
+    background:      var(--random-bg-panel);
+    list-style:      none;
+}
+.random-gen-chips-summary::-webkit-details-marker {
+    display: none;
+}
+.random-gen-chips-summary:hover {
+    color:           var(--random-text);
+    background:      var(--random-tag-bg);
+}
+.random-gen-chips-summary-title {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+    font-weight: 600;
+}
 .random-gen-chips-bar {
     background:    var(--random-bg-panel);
     border-top:    1px solid var(--random-border);
-    padding:       5px 10px;
-    flex-shrink:   0;
+    padding:       4px 10px 6px 10px;
     overflow-x:    auto;
     overflow-y:    hidden;
 }

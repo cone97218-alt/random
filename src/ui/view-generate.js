@@ -105,6 +105,36 @@ function _refreshInjectGroupSelect(container) {
     }
 }
 
+function _updateSummaryHeader(container) {
+    const summaryText = container.querySelector('#random-gen-summary-text');
+    const badgeEl = container.querySelector('#random-gen-summary-badge');
+    const targetGroupId = container.querySelector('#random-gen-group-select')?.value;
+
+    const targetGroup = targetGroupId ? getAllGroups().find(g => g.id === targetGroupId) : null;
+    const injectedGroup = _injectedGroupId ? getAllGroups().find(g => g.id === _injectedGroupId) : null;
+
+    if (summaryText) {
+        if (targetGroup && injectedGroup) {
+            summaryText.textContent = `目标: ${targetGroup.name} · 参考: ${injectedGroup.name}`;
+        } else if (targetGroup) {
+            summaryText.textContent = `目标宏组: ${targetGroup.name}`;
+        } else if (injectedGroup) {
+            summaryText.textContent = `参考宏组: ${injectedGroup.name}`;
+        } else {
+            summaryText.textContent = '目标宏组与注入上下文';
+        }
+    }
+
+    if (badgeEl) {
+        if (_injectedGroupId && injectedGroup) {
+            badgeEl.style.display = '';
+            badgeEl.textContent = `已注入参考组 (${(injectedGroup.macros || []).length}个宏)`;
+        } else {
+            badgeEl.style.display = 'none';
+        }
+    }
+}
+
 function _setInjectedGroup(container, groupId) {
     _injectedGroupId = groupId || null;
     const previewEl = container.querySelector('#random-gen-injected-preview');
@@ -116,12 +146,14 @@ function _setInjectedGroup(container, groupId) {
 
     if (!groupId) {
         if (previewEl) previewEl.style.display = 'none';
+        _updateSummaryHeader(container);
         return;
     }
 
     const group = getAllGroups().find(g => g.id === groupId);
     if (!group) {
         if (previewEl) previewEl.style.display = 'none';
+        _updateSummaryHeader(container);
         return;
     }
 
@@ -134,10 +166,12 @@ function _setInjectedGroup(container, groupId) {
     if (nameEl) nameEl.textContent = group.name || '未命名组';
     if (statsEl) statsEl.textContent = `(${group.macros?.length || 0} 个宏定义 · 共 ${totalOptions} 条选项)`;
     if (previewEl) previewEl.style.display = 'flex';
+    _updateSummaryHeader(container);
 }
 
 function _onGroupSelected(container, groupId) {
     const macroSelect = container.querySelector('#random-gen-macro-select');
+    _updateSummaryHeader(container);
     if (!macroSelect) return;
 
     macroSelect.innerHTML = '<option value="__all__">全部宏</option>';
