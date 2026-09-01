@@ -406,10 +406,10 @@
     font-size:     0.76em;
     font-weight:   500;
     color:         var(--random-text-muted);
-    background:    rgba(0, 0, 0, 0.25);
+    background:    var(--random-tag-bg);
     padding:       1px 6px;
     border-radius: 10px;
-    border:        1px solid rgba(255, 255, 255, 0.06);
+    border:        1px solid var(--random-border);
     flex-shrink:   0;
 }
 .random-category-actions {
@@ -923,7 +923,7 @@
 
 /* ── Quick Macro Inserter Bar ────────────────────────── */
 .random-mm-insert-bar {
-    background:    rgba(0, 0, 0, 0.25);
+    background:    var(--random-tag-bg);
     border:        1px solid var(--random-border);
     border-radius: var(--random-radius-sm);
     padding:       7px 10px;
@@ -1234,7 +1234,7 @@
     align-items:     center;
     justify-content: space-between;
     padding:         4px 8px;
-    background:      rgba(0, 0, 0, 0.15);
+    background:      var(--random-tag-bg);
     border:          1px solid var(--random-border);
     border-radius:   var(--random-radius-sm);
     margin-bottom:   6px;
@@ -2116,7 +2116,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.22);
+    background: var(--random-tag-bg);
     border-radius: var(--random-radius-sm);
     font-size: 0.83em;
     position: relative;
@@ -2125,11 +2125,11 @@
 }
 .random-converter-macro-item--level-1 {
     border-left: 4px solid var(--random-accent);
-    background: rgba(var(--random-accent-rgb, 100, 150, 255), 0.08);
+    background: rgba(var(--random-accent-rgb, 180, 155, 120), 0.08);
 }
 .random-converter-macro-item--level-nested {
-    border-left: 3px dashed rgba(255, 255, 255, 0.4);
-    background: rgba(0, 0, 0, 0.18);
+    border-left: 3px dashed var(--random-border);
+    background: var(--random-tag-bg);
 }
 .random-converter-macro-title {
     display: flex;
@@ -2152,10 +2152,10 @@
 }
 .random-converter-level-badge--root {
     background: var(--random-accent);
-    color: #fff;
+    color: var(--random-bg);
 }
 .random-converter-level-badge--child {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--random-tag-bg);
     color: var(--random-text-muted);
     border: 1px solid var(--random-border);
 }
@@ -2171,7 +2171,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--random-tag-bg);
     padding: 1px 6px;
     border-radius: 4px;
     border: 1px solid var(--random-border);
@@ -2184,7 +2184,7 @@
     color: var(--random-text);
     font-size: 0.95em;
     padding-left: 8px;
-    border-left: 2px solid rgba(255, 255, 255, 0.08);
+    border-left: 2px solid var(--random-border);
 }
 .random-converter-opt-row {
     line-height: 1.4;
@@ -2232,10 +2232,10 @@
     font-size:       0.75em;
     font-weight:     normal;
     color:           var(--random-text-muted);
-    background:      rgba(0, 0, 0, 0.25);
+    background:      var(--random-tag-bg);
     padding:         1px 6px;
     border-radius:   10px;
-    border:          1px solid rgba(255, 255, 255, 0.06);
+    border:          1px solid var(--random-border);
 }
 .random-inspect-modal-body {
     gap:             10px;
@@ -2287,14 +2287,14 @@
     flex-wrap:   wrap;
 }
 .random-inspect-meta-pill {
-    background:    rgba(0, 0, 0, 0.22);
+    background:    var(--random-tag-bg);
     padding:       1px 6px;
     border-radius: 4px;
-    border:        1px solid rgba(255, 255, 255, 0.06);
+    border:        1px solid var(--random-border);
 }
 .random-inspect-item-content {
-    background:    rgba(0, 0, 0, 0.32);
-    border:        1px solid rgba(255, 255, 255, 0.07);
+    background:    var(--random-tag-bg);
+    border:        1px solid var(--random-border);
     border-radius: 4px;
     padding:       8px 12px;
     font-family:   inherit;
@@ -2307,8 +2307,8 @@
     position:      relative;
 }
 .random-inspect-item-skipped {
-    background:    rgba(150, 140, 125, 0.08);
-    border:        1px dashed rgba(150, 140, 125, 0.28);
+    background:    rgba(var(--SmartThemeBorderColor-rgb, 150, 140, 125), 0.08);
+    border:        1px dashed var(--random-border);
     border-radius: 4px;
     padding:       8px 12px;
     font-size:     0.84em;
