@@ -53,6 +53,8 @@ function _loadValues(container) {
     _val(container, '#random-setting-keep-y',   lc.keepYRounds  !== null && lc.keepYRounds  !== undefined ? lc.keepYRounds  : '');
 
     // Misc settings
+    const enableCatCheck = container.querySelector('#random-setting-enable-category-grouping');
+    if (enableCatCheck) enableCatCheck.checked = misc.enableCategoryGrouping !== false;
     const avoidRepCheck = container.querySelector('#random-setting-avoid-repetition');
     if (avoidRepCheck) avoidRepCheck.checked = misc.avoidRepetition !== false;
     _val(container, '#random-setting-converter-start-index', misc.converterStartIndex ?? 1);
@@ -139,6 +141,7 @@ function _save(container, silent = false) {
     s.globalLifecycle.keepYRounds  = keepY  !== '' ? Number(keepY)  : null;
 
     // Misc settings
+    s.misc.enableCategoryGrouping = container.querySelector('#random-setting-enable-category-grouping')?.checked !== false;
     s.misc.avoidRepetition = container.querySelector('#random-setting-avoid-repetition')?.checked !== false;
     const startIndex = Number(container.querySelector('#random-setting-converter-start-index')?.value);
     s.misc.converterStartIndex = Number.isFinite(startIndex) && startIndex >= 1 ? startIndex : 1;
@@ -147,6 +150,7 @@ function _save(container, silent = false) {
     _collectComponentList(container);
 
     saveSettings();
+    refreshGroupList();
     if (!silent) showToast('设置已保存', 'success');
 }
 

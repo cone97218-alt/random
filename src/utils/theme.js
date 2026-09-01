@@ -111,6 +111,7 @@ export function applyMorandiTheme(theme, panelEl) {
 
 /**
  * Apply the 'follow' theme: map ST CSS variables to --random-* variables dynamically.
+ * Background colors extract RGB and apply 100% opacity (alpha = 1).
  * @param {HTMLElement} [panelEl]
  */
 export function applyFollowTheme(panelEl) {
@@ -118,18 +119,18 @@ export function applyFollowTheme(panelEl) {
     const root = document.documentElement;
     
     const followVars = {
-        '--random-bg':           'var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor, #1e1e1e))',
-        '--random-bg-panel':     'var(--SmartThemeChatTintColor, var(--SmartThemeBodyColor, #161616))',
-        '--random-text':         'var(--SmartThemeEmColor, var(--text-color, #dcd7cd))',
-        '--random-text-muted':   'var(--SmartThemeUnderlineColor, var(--text-muted, #968c7d))',
-        '--random-border':       'var(--SmartThemeBorderColor, rgba(120, 120, 120, 0.35))',
-        '--random-accent':       'var(--SmartThemeQuoteColor, var(--SmartThemeEmColor, #b49b78))',
-        '--random-accent-hover': 'var(--SmartThemeUnderlineColor, var(--SmartThemeQuoteColor, #c8af8c))',
-        '--random-danger':       'var(--SmartThemeQuoteColor, #c35046)',
-        '--random-quote-color':  'var(--SmartThemeQuoteColor, #b49b78)',
-        '--random-success':      'var(--SmartThemeQuoteColor, #5aa064)',
-        '--random-tag-bg':       'rgba(var(--SmartThemeBorderColor-rgb, 120, 120, 120), 0.2)',
-        '--random-input-bg':     'var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor, #191919))',
+        '--random-bg':           'rgba(var(--SmartThemeBlurTintColor-rgb, 30, 30, 30), 1)',
+        '--random-bg-panel':     'rgba(var(--SmartThemeChatTintColor-rgb, 25, 25, 25), 1)',
+        '--random-text':         'var(--SmartThemeBodyColor)',
+        '--random-text-muted':   'var(--SmartThemeEmColor, var(--SmartThemeUnderlineColor))',
+        '--random-border':       'rgba(var(--SmartThemeBorderColor-rgb, 80, 80, 80), 1)',
+        '--random-accent':       'var(--SmartThemeQuoteColor)',
+        '--random-accent-hover': 'var(--SmartThemeUnderlineColor)',
+        '--random-danger':       'var(--SmartThemeQuoteColor)',
+        '--random-quote-color':  'var(--SmartThemeQuoteColor)',
+        '--random-success':      'var(--SmartThemeQuoteColor)',
+        '--random-tag-bg':       'rgba(var(--SmartThemeChatTintColor-rgb, 25, 25, 25), 1)',
+        '--random-input-bg':     'rgba(var(--SmartThemeBlurTintColor-rgb, 30, 30, 30), 1)',
     };
 
     for (const [key, val] of Object.entries(followVars)) {

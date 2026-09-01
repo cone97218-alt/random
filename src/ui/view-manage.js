@@ -91,6 +91,19 @@ export function refreshGroupList() {
     }
     if (emptyEl) emptyEl.style.display = 'none';
 
+    const settings = getSettings();
+    const enableGrouping = settings?.misc?.enableCategoryGrouping !== false;
+
+    if (!enableGrouping) {
+        // Flat list without category folder headers
+        groups.forEach(group => {
+            listEl.appendChild(_buildGroupCard(group));
+        });
+        listEl.scrollTop = listScrollTop;
+        if (bodyEl) bodyEl.scrollTop = bodyScrollTop;
+        return;
+    }
+
     // Group by category
     const categoryMap = new Map();
     groups.forEach(group => {

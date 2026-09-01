@@ -41,8 +41,9 @@ export const DEFAULT_PANEL = {
 };
 
 export const DEFAULT_MISC = {
-    avoidRepetition: true,     // 防连续重复抽取
-    converterStartIndex: 1,    // 导入起始编号
+    avoidRepetition: true,          // 防连续重复抽取
+    enableCategoryGrouping: true,   // 启用宏配置组分类折叠分组视图
+    converterStartIndex: 1,         // 导入起始编号
 };
 
 // Max macro nesting depth (prevents infinite loops)
