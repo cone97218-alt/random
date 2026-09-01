@@ -234,15 +234,67 @@ export function refreshGroupList() {
     });
 }
 
+function _buildGroupCardPreview(group, groupState) {
+    const macroValues = groupState.currentValues || {};
+    const macroIds = group.macros || [];
+    
+    // Extract root macros referenced in template preserving appearance order
+    const templateMatches = [...(group.template || '').matchAll(/\{\{random_([^}]+)\}\}/g)]
+        .map(m => m[1].trim())
+        .filter(Boolean);
+    const templateMacroIds = [...new Set(templateMatches)];
+    
+    // Combine template macros first, then any remaining bound macros in group.macros
+    const allMacroIds = [...templateMacroIds];
+    for (const mId of macroIds) {
+        if (!allMacroIds.includes(mId)) {
+            allMacroIds.push(mId);
+        }
+    }
+
+    // Full resolved template preview for hover tooltip
+    const fullPreview = group.template
+        ? previewTemplate(group.template, macroValues)
+        : '';
+    const tooltip = fullPreview ? `完整注入模板预演：\n${fullPreview}` : '';
+
+    if (allMacroIds.length === 0) {
+        if (group.template) {
+            const staticText = previewTemplate(group.template, macroValues).replace(/\s+/g, ' ').trim();
+            return {
+                html: `<span class="random-gc-preview-empty">${escapeHtml(staticText || '（无宏内容）')}</span>`,
+                tooltip: tooltip || staticText
+            };
+        }
+        return {
+            html: '<span class="random-gc-preview-empty">（无宏配置）</span>',
+            tooltip: ''
+        };
+    }
+
+    const itemsHtml = allMacroIds.map(mId => {
+        let val = macroValues[mId];
+        if (val === undefined || val === null || val === '') {
+            val = '—';
+        } else {
+            val = String(val).replace(/\s+/g, ' ').trim();
+        }
+        return `<span class="random-gc-preview-val" title="{{random_${escapeHtml(mId)}}}: ${escapeHtml(val)}">${escapeHtml(val)}</span>`;
+    }).join('<span class="random-gc-preview-sep">|</span>');
+
+    return {
+        html: itemsHtml,
+        tooltip
+    };
+}
+
 function _buildGroupCard(group) {
     const groupState = getGroupChatState(group.id);
     const pinnedMacros = new Set(groupState.pinnedMacros || []);
     const isCollapsed = _collapsedGroupIds.has(group.id);
     
-    // Resolve current preview
-    const preview = group.template
-        ? previewTemplate(group.template, groupState.currentValues || {})
-        : '（无模板）';
+    // Resolve current macro preview
+    const { html: previewHtml, tooltip: previewTooltip } = _buildGroupCardPreview(group, groupState);
     
     const card = document.createElement('div');
     card.className = `random-group-card${group.enabled ? '' : ' random-group-card--disabled'}${isCollapsed ? ' random-group-card--collapsed' : ''}`;
@@ -288,7 +340,7 @@ function _buildGroupCard(group) {
                 </button>
             </div>
         </div>
-        <div class="random-group-card-preview">${escapeHtml(preview)}</div>
+        <div class="random-group-card-preview"${previewTooltip ? ` title="${escapeHtml(previewTooltip)}"` : ''}>${previewHtml}</div>
         <div class="random-group-card-body" style="${isCollapsed ? 'display:none;' : ''}">
             <div class="random-group-card-macros" id="random-gc-macros-${group.id}">
                 ${_buildMacroChips(group, groupState, pinnedMacros)}

@@ -81,6 +81,24 @@
             </button>
         </div>
 
+        <!-- Diff Preview & Granular Operations Inspector (when isPatch returned) -->
+        <div class="random-gen-diff-preview" id="random-gen-diff-preview" style="display:none;">
+            <div class="random-gen-diff-header">
+                <div class="random-gen-diff-title-wrap">
+                    <i class="fa-solid fa-code-compare" style="color:var(--random-accent);"></i>
+                    <span class="random-gen-diff-title" id="random-gen-diff-title">AI 局部修改提议</span>
+                    <span class="random-inspect-meta-pill" id="random-gen-diff-badge">0 项变更</span>
+                </div>
+                <div class="random-gen-diff-header-actions">
+                    <button class="random-btn random-btn--xs random-btn--ghost" id="random-gen-diff-select-all-btn" type="button">全选</button>
+                    <button class="random-btn random-btn--xs random-btn--ghost" id="random-gen-diff-select-none-btn" type="button">全不选</button>
+                </div>
+            </div>
+            <div class="random-gen-diff-list" id="random-gen-diff-list">
+                <!-- Diff items rendered here -->
+            </div>
+        </div>
+
         <!-- Structured Group Overview (when full group returned) -->
         <div class="random-gen-structured-preview" id="random-gen-structured-preview" style="display:none;">
             <div class="random-gen-structured-header">
@@ -121,9 +139,13 @@
         </summary>
         <div class="random-gen-chips-bar">
             <div class="random-gen-chips-scroll">
-                <button class="random-gen-chip-btn" data-slot="merge" type="button" title="将注入的多个宏组深度合并重组成一个统一连贯的宏组与模板">
-                    <i class="fa-solid fa-code-merge"></i>
-                    <span>合并多个宏组</span>
+                <button class="random-gen-chip-btn" data-slot="patch_add" type="button" title="向当前宏组的指定子宏点对点精准追加若干高质量选项">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>点对点追加选项</span>
+                </button>
+                <button class="random-gen-chip-btn" data-slot="patch_tweak_tpl" type="button" title="仅对宏组的主注入提示词模板进行润色优化与结构重组">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <span>微调主模板</span>
                 </button>
                 <button class="random-gen-chip-btn" data-slot="clean" type="button" title="去除重复项、修正错别字并规范格式">
                     <i class="fa-solid fa-broom"></i>
@@ -144,6 +166,10 @@
                 <button class="random-gen-chip-btn" data-slot="polish" type="button" title="文学修辞深度润色与情绪张力强化">
                     <i class="fa-solid fa-feather"></i>
                     <span>深度文学润色</span>
+                </button>
+                <button class="random-gen-chip-btn" data-slot="merge" type="button" title="将注入的多个宏组深度合并重组成一个统一连贯的宏组与模板">
+                    <i class="fa-solid fa-code-merge"></i>
+                    <span>合并多个宏组</span>
                 </button>
             </div>
         </div>

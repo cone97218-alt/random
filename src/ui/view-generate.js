@@ -12,6 +12,7 @@
 import { renderExtensionTemplateAsync } from '../../../../../extensions.js';
 import { getAllGroups, getMacroById, saveMacro, saveGroup } from '../core/storage.js';
 import { generateMacroOptions, parseAIResponseToOptions, tryParseStructuredAIResponse } from '../core/ai-client.js';
+import { computePatchDiff, applyPatchOperations } from '../core/patch-engine.js';
 import { generateId, showToast, escapeHtml } from '../utils/dom.js';
 import { refreshGroupList } from './view-manage.js';
 
@@ -20,8 +21,11 @@ let _abortController = null;
 let _streamedText = '';
 let _rendered = false;
 const _injectedGroupIds = new Set();
+let _selectedDiffIndices = new Set();
 
 const PROMPT_SLOT_TEMPLATES = {
+    patch_add: '请分析上述注入的宏组，为其中的宏针对性地扩充 3-5 个更具生动感和情节张力的高质量全新候选项，请以点对点增量修改格式 (isPatch: true) 输出。',
+    patch_tweak_tpl: '请深度审视上述宏组的主注入提示词模板与宏变量编排：重新润色语序结构、丰富上下文引导词，并以点对点增量修改格式 (isPatch: true) 仅输出模板的优化更新指令。',
     merge: '请深度整合上述注入的全部已有宏配置组：分析各个宏组的职能与候选项，合并重写为一个统一连贯的主注入模板，合并重叠或强相关的子宏（并去除重复选项），规划成一个结构完整、层级清晰的全新合并宏组，并按标准 JSON 格式输出。',
     clean: '请帮我全面整理并优化上述宏配置组的候选项：去除重复或表意相近的项，修正错别字与语病，规范句式结构，剔除低质内容，保持高质量并按标准结构返回。',
     expand: '请深度分析上述宏组已有选项的主题风格、语境和叙事维度，扩充 15-20 个更丰富生动、不同维度的全新高质量候选项。',
@@ -334,7 +338,34 @@ function _bindEvents(container) {
         container.querySelector('#random-gen-result').style.display = 'none';
         container.querySelector('#random-gen-option-edit-list').innerHTML = '';
         container.querySelector('#random-gen-structured-preview').style.display = 'none';
+        container.querySelector('#random-gen-diff-preview').style.display = 'none';
         _streamedText = '';
+    });
+
+    container.querySelector('#random-gen-diff-select-all-btn')?.addEventListener('click', () => {
+        const diffList = container.querySelector('#random-gen-diff-list');
+        if (!diffList) return;
+        diffList.querySelectorAll('.random-diff-item').forEach(item => {
+            const idx = Number(item.dataset.idx);
+            _selectedDiffIndices.add(idx);
+            item.classList.remove('is-unchecked');
+            const chk = item.querySelector('.random-diff-check');
+            if (chk) chk.checked = true;
+        });
+        _updateDiffBadge(container);
+    });
+
+    container.querySelector('#random-gen-diff-select-none-btn')?.addEventListener('click', () => {
+        const diffList = container.querySelector('#random-gen-diff-list');
+        if (!diffList) return;
+        diffList.querySelectorAll('.random-diff-item').forEach(item => {
+            const idx = Number(item.dataset.idx);
+            _selectedDiffIndices.delete(idx);
+            item.classList.add('is-unchecked');
+            const chk = item.querySelector('.random-diff-check');
+            if (chk) chk.checked = false;
+        });
+        _updateDiffBadge(container);
     });
 
     container.querySelector('#random-gen-add-option-btn')?.addEventListener('click', () => {
@@ -457,10 +488,11 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
             return;
         }
 
-        // Check if structured group
+        // Check if structured group or patch
         const structured = tryParseStructuredAIResponse(_streamedText);
         currentTurn.structuredData = structured;
 
+        _updateAIBubbleSwipeControls(aiBubble, currentTurn, turnIdx);
         _populateResultEditor(container, _streamedText, structured);
     } catch (err) {
         if (err.name !== 'AbortError') {
@@ -632,6 +664,40 @@ function _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx) {
         textEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:var(--random-accent); margin-right:6px;"></i> 正在构思生成中...';
     }
 
+    // Inline Diff card in bubble for point-to-point modification
+    let inlineDiffCard = aiBubble.querySelector('.random-bubble-diff-card');
+    const structured = tryParseStructuredAIResponse(currentSwipeText);
+    turn.structuredData = structured;
+
+    if (structured && structured.isPatch && Array.isArray(structured.operations) && structured.operations.length > 0) {
+        if (!inlineDiffCard) {
+            inlineDiffCard = document.createElement('div');
+            inlineDiffCard.className = 'random-bubble-diff-card';
+            const bubbleContent = aiBubble.querySelector('.random-gen-bubble-content');
+            const bubbleFooter = aiBubble.querySelector('.random-gen-bubble-footer');
+            if (bubbleContent && bubbleFooter) {
+                bubbleContent.insertBefore(inlineDiffCard, bubbleFooter);
+            }
+        }
+        inlineDiffCard.innerHTML = `
+            <div class="random-bubble-diff-header">
+                <span class="random-bubble-diff-summary"><i class="fa-solid fa-wand-magic-sparkles"></i> ${escapeHtml(structured.summary || 'AI 局部修改提议')}</span>
+                <span class="random-inspect-meta-pill">共 ${structured.operations.length} 项变更</span>
+            </div>
+            <div class="random-bubble-diff-actions">
+                <button class="random-btn random-btn--xs random-btn--primary random-diff-inspect-btn" type="button">
+                    <i class="fa-solid fa-code-compare"></i> 审查并应用修改
+                </button>
+            </div>
+        `;
+        inlineDiffCard.querySelector('.random-diff-inspect-btn')?.addEventListener('click', () => {
+            const targetContainer = _container || document.querySelector('#random-view-generate');
+            _populateResultEditor(targetContainer, currentSwipeText, structured, true);
+        });
+    } else if (inlineDiffCard) {
+        inlineDiffCard.remove();
+    }
+
     prevBtn.onclick = () => {
         if (turn.activeIndex > 0) {
             turn.activeIndex--;
@@ -695,6 +761,131 @@ function _rebuildChatDOM(container) {
     });
 }
 
+// ── Diff Inspector Rendering ──────────────────────────────────────────────────
+
+function _updateDiffBadge(container) {
+    const badge = container.querySelector('#random-gen-diff-badge');
+    if (badge) {
+        badge.textContent = `已选 ${_selectedDiffIndices.size} 项变更`;
+    }
+}
+
+function _renderDiffList(container, diffData) {
+    const listEl = container.querySelector('#random-gen-diff-list');
+    const titleEl = container.querySelector('#random-gen-diff-title');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    _selectedDiffIndices.clear();
+
+    if (!diffData || !diffData.diffs || diffData.diffs.length === 0) {
+        listEl.innerHTML = '<div class="random-inspect-empty">无有效差异变更</div>';
+        _updateDiffBadge(container);
+        return;
+    }
+
+    if (titleEl) {
+        titleEl.textContent = `目标宏组「${diffData.group?.name || '待修改宏组'}」局部修改提议`;
+    }
+
+    diffData.diffs.forEach(d => {
+        if (d.valid !== false) {
+            _selectedDiffIndices.add(d.index);
+        }
+
+        let pillHtml = '';
+        switch (d.type) {
+            case 'added':
+                pillHtml = '<span class="random-diff-pill random-diff-pill--added"><i class="fa-solid fa-plus"></i> 追加</span>';
+                break;
+            case 'modified':
+                pillHtml = '<span class="random-diff-pill random-diff-pill--modified"><i class="fa-solid fa-pen"></i> 修改</span>';
+                break;
+            case 'removed':
+                pillHtml = '<span class="random-diff-pill random-diff-pill--removed"><i class="fa-solid fa-trash"></i> 移除</span>';
+                break;
+            case 'template':
+                pillHtml = '<span class="random-diff-pill random-diff-pill--template"><i class="fa-solid fa-code"></i> 模板</span>';
+                break;
+            case 'attribute':
+                pillHtml = '<span class="random-diff-pill random-diff-pill--attr"><i class="fa-solid fa-sliders"></i> 属性</span>';
+                break;
+            default:
+                pillHtml = '<span class="random-diff-pill random-diff-pill--modified">变更</span>';
+                break;
+        }
+
+        let bodyHtml = '';
+        (d.details || []).forEach(dt => {
+            if (dt.oldVal !== undefined && dt.newVal !== undefined) {
+                bodyHtml += `
+                    <div class="random-diff-line random-diff-line--del">
+                        <span class="random-diff-marker">-</span>
+                        <span>${escapeHtml(String(dt.oldVal))}</span>
+                        ${dt.oldWeight !== undefined ? `<span class="random-diff-meta">[权重:${dt.oldWeight}]</span>` : ''}
+                    </div>
+                    <div class="random-diff-line random-diff-line--ins">
+                        <span class="random-diff-marker">+</span>
+                        <span>${escapeHtml(String(dt.newVal))}</span>
+                        ${dt.newWeight !== undefined ? `<span class="random-diff-meta">[权重:${dt.newWeight}]</span>` : ''}
+                    </div>
+                `;
+            } else if (dt.newVal !== undefined) {
+                const weightTag = dt.weight !== undefined && dt.weight !== 1 ? ` <span class="random-diff-meta">[权重:${dt.weight}]</span>` : '';
+                const tagStr = dt.tag ? ` <span class="random-diff-meta">[标签:${escapeHtml(dt.tag)}]</span>` : '';
+                bodyHtml += `
+                    <div class="random-diff-line random-diff-line--ins">
+                        <span class="random-diff-marker">+</span>
+                        <span>${escapeHtml(String(dt.newVal))}</span>
+                        ${weightTag}${tagStr}
+                    </div>
+                `;
+            } else if (dt.oldVal !== undefined) {
+                bodyHtml += `
+                    <div class="random-diff-line random-diff-line--del">
+                        <span class="random-diff-marker">-</span>
+                        <span>${escapeHtml(String(dt.oldVal))}</span>
+                    </div>
+                `;
+            }
+        });
+
+        if (d.error) {
+            bodyHtml += `<div class="random-diff-error-badge"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(d.error)}</div>`;
+        }
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'random-diff-item';
+        itemEl.dataset.idx = d.index;
+        itemEl.innerHTML = `
+            <div class="random-diff-item-header">
+                <input type="checkbox" class="random-diff-check" ${d.valid !== false ? 'checked' : 'disabled'} />
+                ${pillHtml}
+                <span class="random-diff-item-title">${escapeHtml(d.title)}</span>
+            </div>
+            <div class="random-diff-body">
+                ${bodyHtml}
+            </div>
+        `;
+
+        const checkEl = itemEl.querySelector('.random-diff-check');
+        checkEl?.addEventListener('change', () => {
+            if (checkEl.checked) {
+                _selectedDiffIndices.add(d.index);
+                itemEl.classList.remove('is-unchecked');
+            } else {
+                _selectedDiffIndices.delete(d.index);
+                itemEl.classList.add('is-unchecked');
+            }
+            _updateDiffBadge(container);
+        });
+
+        listEl.appendChild(itemEl);
+    });
+
+    _updateDiffBadge(container);
+}
+
 // ── Populate Result Editor ────────────────────────────────────────────────────
 
 function _populateResultEditor(container, rawText, structured, forceOpen = false) {
@@ -703,25 +894,53 @@ function _populateResultEditor(container, rawText, structured, forceOpen = false
 
     const resultEl = targetContainer.querySelector('#random-gen-result');
     const editListEl = targetContainer.querySelector('#random-gen-option-edit-list');
+    const diffPreviewEl = targetContainer.querySelector('#random-gen-diff-preview');
     const structPreviewEl = targetContainer.querySelector('#random-gen-structured-preview');
     const structNameEl = targetContainer.querySelector('#random-gen-structured-name');
     const structCountEl = targetContainer.querySelector('#random-gen-structured-count');
     const structTemplateEl = targetContainer.querySelector('#random-gen-structured-template');
+    const addOptionBtn = targetContainer.querySelector('#random-gen-add-option-btn');
     const updateBtn = targetContainer.querySelector('#random-gen-apply-update-btn');
     const importBtn = targetContainer.querySelector('#random-gen-import-btn');
 
     if (!resultEl || !editListEl) return;
     editListEl.innerHTML = '';
 
-    const isStructured = Boolean(structured && structured.macros && structured.macros.length > 0);
+    const isPatch = Boolean(structured && structured.isPatch && Array.isArray(structured.operations) && structured.operations.length > 0);
+    const isStructuredFull = Boolean(structured && !structured.isPatch && structured.macros && structured.macros.length > 0);
     const hasInjected = _injectedGroupIds.size > 0;
     const isMultiInjected = _injectedGroupIds.size > 1;
 
     // Only auto-open drawer when structured data is returned OR forceOpen is requested (via button click)
-    const shouldOpen = isStructured || forceOpen;
+    const shouldOpen = isPatch || isStructuredFull || forceOpen;
 
-    if (isStructured) {
+    if (isPatch) {
+        // Point-to-point incremental Patch mode
+        if (structPreviewEl) structPreviewEl.style.display = 'none';
+        if (editListEl) editListEl.style.display = 'none';
+        if (addOptionBtn) addOptionBtn.style.display = 'none';
+        if (diffPreviewEl) diffPreviewEl.style.display = 'flex';
+
+        const targetGroupId = targetContainer.querySelector('#random-gen-group-select')?.value;
+        const primaryGroupId = targetGroupId || Array.from(_injectedGroupIds)[0];
+        const diffData = computePatchDiff(primaryGroupId, structured.operations);
+        _renderDiffList(targetContainer, diffData);
+
+        if (updateBtn) {
+            updateBtn.style.display = '';
+            const span = updateBtn.querySelector('span');
+            if (span) span.textContent = '⚡ 应用选中的修改';
+        }
+        if (importBtn) {
+            importBtn.style.display = 'none';
+        }
+
+        showToast(`AI 已生成点对点修改方案 (${structured.operations.length} 项变更)，请审查后应用`, 'success');
+    } else if (isStructuredFull) {
         // Structured Full Group
+        if (diffPreviewEl) diffPreviewEl.style.display = 'none';
+        if (editListEl) editListEl.style.display = '';
+        if (addOptionBtn) addOptionBtn.style.display = '';
         if (structPreviewEl) {
             structPreviewEl.style.display = 'flex';
             if (structNameEl) structNameEl.textContent = structured.groupName || (isMultiInjected ? 'AI 合并重构宏组' : 'AI 生成/整理宏组');
@@ -741,15 +960,20 @@ function _populateResultEditor(container, rawText, structured, forceOpen = false
             if (span) span.textContent = isMultiInjected ? '覆盖更新到主宏组' : '更新原宏组';
         }
         if (importBtn) {
+            importBtn.style.display = '';
             const span = importBtn.querySelector('span');
             if (span) span.textContent = isMultiInjected ? '另存为合并新宏组' : '另存为新宏组';
         }
 
         showToast(`AI 已完成结构化宏组设计: ${structured.groupName || '宏配置组'}`, 'success');
     } else {
+        if (diffPreviewEl) diffPreviewEl.style.display = 'none';
         if (structPreviewEl) structPreviewEl.style.display = 'none';
+        if (editListEl) editListEl.style.display = '';
+        if (addOptionBtn) addOptionBtn.style.display = '';
         if (updateBtn) updateBtn.style.display = 'none';
         if (importBtn) {
+            importBtn.style.display = '';
             const span = importBtn.querySelector('span');
             if (span) span.textContent = '确认导入';
         }
@@ -796,15 +1020,15 @@ function _addEditableRow(container, text, weight = 1, macroTag = '') {
 // ── Update Injected Group in Place ────────────────────────────────────────────
 
 function _applyUpdateToInjectedGroup(container) {
-    if (_injectedGroupIds.size === 0) {
-        showToast('未检测到已注入的宏组', 'error');
+    const targetGroupId = container.querySelector('#random-gen-group-select')?.value;
+    const primaryGroupId = targetGroupId || Array.from(_injectedGroupIds)[0];
+
+    if (!primaryGroupId) {
+        showToast('未选择目标宏组，请在上方选择或注入宏组', 'error');
         return;
     }
 
     const allGroups = getAllGroups();
-    // Use target group if selected, otherwise the first injected group
-    const targetGroupId = container.querySelector('#random-gen-group-select')?.value;
-    const primaryGroupId = targetGroupId || Array.from(_injectedGroupIds)[0];
     const group = allGroups.find(g => g.id === primaryGroupId);
 
     if (!group) {
@@ -814,6 +1038,28 @@ function _applyUpdateToInjectedGroup(container) {
 
     const activeTurn = _chatHistory[_chatHistory.length - 1];
     const structured = activeTurn?.structuredData;
+
+    // Handle Patch operations
+    if (structured && structured.isPatch && Array.isArray(structured.operations)) {
+        if (_selectedDiffIndices.size === 0) {
+            showToast('未选择任何要应用的修改项', 'warning');
+            return;
+        }
+
+        const res = applyPatchOperations(primaryGroupId, structured.operations, _selectedDiffIndices);
+        if (res.success) {
+            showToast(`🎉 成功应用 ${res.appliedCount} 项点对点修改到宏组「${group.name}」！`, 'success');
+            _refreshGroupSelect(container);
+            _refreshInjectGroupSelect(container);
+            _renderInjectedGroups(container);
+            refreshGroupList();
+            container.querySelector('#random-gen-result').style.display = 'none';
+        } else {
+            showToast(`应用修改失败: ${res.error || '未做任何修改'}`, 'error');
+        }
+        return;
+    }
+
     const rows = container.querySelectorAll('.random-option-edit-row');
 
     if (structured && structured.macros && structured.macros.length > 0) {

@@ -152,6 +152,8 @@ export async function* generateMacroOptions(userPrompt, signal = null, chatHisto
 
 /**
  * Try to parse structured JSON from AI output (handles code blocks or raw JSON).
+ * Supports both Full Group creation ({ isFullGroup, macros, ... }) and
+ * Point-to-point Patch modification ({ isPatch, operations, ... }).
  * @param {string} text
  * @returns {Object|null}
  */
@@ -163,8 +165,21 @@ export function tryParseStructuredAIResponse(text) {
 
     try {
         const parsed = JSON.parse(candidate);
-        if (parsed && typeof parsed === 'object' && (parsed.isFullGroup || parsed.macros || parsed.groupName)) {
-            return parsed;
+        if (parsed && typeof parsed === 'object') {
+            // Check for Patch format
+            if (parsed.isPatch || (Array.isArray(parsed.operations) && parsed.operations.length > 0)) {
+                return {
+                    isPatch: true,
+                    summary: parsed.summary || 'AI 提议的局部修改',
+                    operations: Array.isArray(parsed.operations) ? parsed.operations : [],
+                    raw: parsed,
+                };
+            }
+
+            // Check for Full Group format
+            if (parsed.isFullGroup || parsed.macros || parsed.groupName) {
+                return parsed;
+            }
         }
     } catch (_) {}
 

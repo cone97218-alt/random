@@ -536,7 +536,28 @@
     white-space:   nowrap;
     overflow:      hidden;
     text-overflow: ellipsis;
-    font-style:    italic;
+    line-height:   1.4;
+    user-select:   text;
+}
+.random-gc-preview-item {
+    display: inline;
+}
+.random-gc-preview-key {
+    color: var(--random-accent);
+    font-weight: 500;
+}
+.random-gc-preview-val {
+    color: var(--random-text);
+}
+.random-gc-preview-sep {
+    color: var(--random-border);
+    margin: 0 6px;
+    user-select: none;
+    opacity: 0.7;
+}
+.random-gc-preview-empty {
+    font-style: italic;
+    color: var(--random-text-muted);
 }
 .random-group-card-macros {
     display:        flex;
@@ -2647,5 +2668,215 @@ details:not([open]) .random-gen-chevron {
     font-style: italic;
 }
 
+/* ── Diff Inspector (Point-to-Point Macro Modifications) ── */
 
+.random-gen-diff-preview {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+    background:     var(--random-bg-panel);
+    border:         1px solid var(--random-border);
+    border-radius:  var(--random-radius-md);
+    padding:        12px;
+    margin-bottom:  12px;
+}
 
+.random-gen-diff-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             8px;
+    padding-bottom:  8px;
+    border-bottom:   1px solid var(--random-border);
+}
+
+.random-gen-diff-title-wrap {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    font-size:   0.88em;
+    font-weight: 600;
+    color:       var(--random-text);
+}
+
+.random-gen-diff-header-actions {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+}
+
+.random-gen-diff-list {
+    display:        flex;
+    flex-direction: column;
+    gap:            8px;
+    max-height:     380px;
+    overflow-y:     auto;
+    padding-right:  4px;
+}
+
+.random-diff-item {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+    background:     var(--random-tag-bg);
+    border:         1px solid var(--random-border);
+    border-radius:  var(--random-radius-sm);
+    padding:        8px 10px;
+    transition:     border-color var(--random-transition), background var(--random-transition);
+}
+
+.random-diff-item:hover {
+    border-color: var(--random-accent);
+}
+
+.random-diff-item.is-unchecked {
+    opacity: 0.55;
+    filter: grayscale(0.4);
+}
+
+.random-diff-item-header {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    font-size:   0.84em;
+}
+
+.random-diff-check {
+    cursor: pointer;
+    accent-color: var(--random-accent);
+}
+
+.random-diff-pill {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            4px;
+    font-size:      0.76em;
+    padding:        1px 6px;
+    border-radius:  4px;
+    font-weight:    600;
+    white-space:    nowrap;
+    border:         1px solid transparent;
+}
+
+.random-diff-pill--added {
+    background:   rgba(46, 160, 67, 0.15);
+    color:        #3fb950;
+    border-color: rgba(46, 160, 67, 0.3);
+}
+
+.random-diff-pill--modified {
+    background:   rgba(210, 153, 34, 0.15);
+    color:        #d29922;
+    border-color: rgba(210, 153, 34, 0.3);
+}
+
+.random-diff-pill--removed {
+    background:   rgba(248, 81, 73, 0.15);
+    color:        #f85149;
+    border-color: rgba(248, 81, 73, 0.3);
+}
+
+.random-diff-pill--template {
+    background:   rgba(163, 113, 247, 0.15);
+    color:        #bc8cff;
+    border-color: rgba(163, 113, 247, 0.3);
+}
+
+.random-diff-pill--attr {
+    background:   rgba(88, 166, 255, 0.15);
+    color:        #58a6ff;
+    border-color: rgba(88, 166, 255, 0.3);
+}
+
+.random-diff-item-title {
+    font-weight: 500;
+    color:       var(--random-text);
+    flex:        1;
+}
+
+.random-diff-body {
+    display:        flex;
+    flex-direction: column;
+    gap:            4px;
+    font-size:      0.82em;
+    margin-left:    22px;
+}
+
+.random-diff-line {
+    display:       flex;
+    align-items:   flex-start;
+    gap:           6px;
+    padding:       4px 8px;
+    border-radius: 4px;
+    font-family:   inherit;
+    line-height:   1.4;
+    word-break:    break-word;
+}
+
+.random-diff-line--del {
+    background: rgba(248, 81, 73, 0.1);
+    color:      #f85149;
+    border-left: 3px solid #f85149;
+    text-decoration: line-through;
+    opacity: 0.85;
+}
+
+.random-diff-line--ins {
+    background: rgba(46, 160, 67, 0.1);
+    color:      #3fb950;
+    border-left: 3px solid #3fb950;
+}
+
+.random-diff-marker {
+    font-weight: bold;
+    user-select: none;
+}
+
+.random-diff-meta {
+    font-size:   0.78em;
+    color:       var(--random-text-muted);
+    margin-left: 6px;
+}
+
+.random-diff-error-badge {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           4px;
+    font-size:     0.76em;
+    color:         var(--random-danger, #e55);
+    background:    rgba(229, 85, 85, 0.1);
+    padding:       2px 6px;
+    border-radius: 4px;
+    margin-top:    4px;
+}
+
+/* Inline Diff Card inside AI Chat Bubble */
+.random-bubble-diff-card {
+    margin-top:    10px;
+    background:    rgba(var(--SmartThemeBorderColor-rgb, 150, 140, 125), 0.08);
+    border:        1px solid var(--random-border);
+    border-radius: var(--random-radius-sm);
+    padding:       10px;
+    display:       flex;
+    flex-direction: column;
+    gap:           8px;
+}
+
+.random-bubble-diff-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    font-size:       0.84em;
+}
+
+.random-bubble-diff-summary {
+    font-weight: 600;
+    color:       var(--random-accent);
+}
+
+.random-bubble-diff-actions {
+    display:     flex;
+    align-items: center;
+    gap:         6px;
+    margin-top:  4px;
+}

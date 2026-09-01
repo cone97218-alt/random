@@ -442,8 +442,8 @@ export async function buildMessages(userPrompt, extChatHistory = [], options = {
                 if (groupContext) {
                     const isMulti = injectedIds.length > 1;
                     const hintMsg = isMulti
-                        ? `【多宏组整合与重构指令提示】\n请以上述注入的 ${injectedIds.length} 个已有宏配置组作为核心参考数据，根据接下来的用户需求执行合并、交叉重组、精简去重、拆分二级嵌套宏或规划统一主注入模板。若用户要求合并或重构宏组，请按照规范输出标准 JSON 格式，以便系统直接解析和一键导入。`
-                        : `【整理与重构指令提示】\n请以上述注入的已有宏配置组作为核心参考数据，根据接下来的用户需求执行整理、精简去重、扩充候选项、拆分二级嵌套宏或重构主模板。若用户要求重构宏组，请按照规范输出标准 JSON 格式，以便系统直接解析和一键导入。`;
+                        ? `【多宏组整合与重构指令提示】\n请以上述注入的 ${injectedIds.length} 个已有宏配置组作为核心参考数据。若用户要求局部添加/修改/删除选项、微调模板，请输出【点对点局部修改模式 isPatch: true】；若用户要求全量合并与彻底重构，请按规范输出标准 JSON 格式。`
+                        : `【已有宏组修改与重构指令提示】\n请以上述注入的已有宏配置组作为核心基准数据：\n1. 若用户的需求是对现有宏组进行局部增删改（例如添加新选项、替换润色部分选项、删除低质选项、调整触发概率或修改模板），请务必采用【点对点局部修改模式 isPatch: true】输出 operations 指令列表，千万不要重复输出全部未改变的候选项！\n2. 若用户明确要求全新重构或彻底重新规划整组，可输出 isFullGroup: true。`;
 
                     messages.push({
                         role: 'system',
