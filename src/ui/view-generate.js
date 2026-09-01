@@ -434,6 +434,12 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
             chatEl.scrollTop = chatEl.scrollHeight;
         }
 
+        if (!_streamedText.trim()) {
+            aiBubble.querySelector('.random-gen-bubble-text').innerHTML = '<span style="color:var(--random-danger, #e55);"><i class="fa-solid fa-triangle-exclamation"></i> AI 未返回文本（请检查酒馆 API 连接与预设设置，或点击下方重新生成）</span>';
+            showToast('AI 未返回有效回复，请重试', 'warning');
+            return;
+        }
+
         // Check if structured group
         const structured = tryParseStructuredAIResponse(_streamedText);
         currentTurn.structuredData = structured;
@@ -441,7 +447,7 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
         _populateResultEditor(container, _streamedText, structured);
     } catch (err) {
         if (err.name !== 'AbortError') {
-            aiBubble.querySelector('.random-gen-bubble-text').textContent = `[错误] ${err.message}`;
+            aiBubble.querySelector('.random-gen-bubble-text').innerHTML = `<span style="color:var(--random-danger, #e55);"><i class="fa-solid fa-triangle-exclamation"></i> [生成失败] ${escapeHtml(err.message)}</span>`;
             showToast(`生成失败: ${err.message}`, 'error');
         }
     } finally {
@@ -577,7 +583,7 @@ function _createAIBubble(turnIdx) {
     bubble.innerHTML = `
         <div class="random-gen-bubble-avatar"><i class="fa-solid fa-robot"></i></div>
         <div class="random-gen-bubble-content">
-            <div class="random-gen-bubble-text"></div>
+            <div class="random-gen-bubble-text"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--random-accent); margin-right:6px;"></i> 正在构思生成中...</div>
             <div class="random-gen-bubble-footer">
                 <button class="random-icon-btn--xs random-swipe-prev" title="上一条 (Swipe Left)"><i class="fa-solid fa-chevron-left"></i></button>
                 <span class="random-gen-swipe-counter">1/1</span>
@@ -602,7 +608,12 @@ function _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx) {
     const current = turn.activeIndex + 1;
     if (counter) counter.textContent = `${current}/${total}`;
 
-    textEl.textContent = turn.swipes[turn.activeIndex] || '';
+    const currentSwipeText = turn.swipes[turn.activeIndex];
+    if (currentSwipeText) {
+        textEl.textContent = currentSwipeText;
+    } else {
+        textEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:var(--random-accent); margin-right:6px;"></i> 正在构思生成中...';
+    }
 
     prevBtn.onclick = () => {
         if (turn.activeIndex > 0) {

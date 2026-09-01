@@ -28,9 +28,36 @@ async function* readSSEStream(reader, decoder) {
                 const trimmed = line.trim();
                 if (!trimmed || trimmed === 'data: [DONE]') continue;
                 if (trimmed.startsWith('data: ')) {
+                    const payload = trimmed.slice(6).trim();
+                    if (!payload || payload === '[DONE]') continue;
                     try {
-                        const json = JSON.parse(trimmed.slice(6));
-                        const text = json.choices?.[0]?.delta?.content || '';
+                        const json = JSON.parse(payload);
+                        const text = json.choices?.[0]?.delta?.content
+                            ?? json.choices?.[0]?.delta?.text
+                            ?? json.choices?.[0]?.text
+                            ?? json.choices?.[0]?.message?.content
+                            ?? json.delta?.text
+                            ?? json.content
+                            ?? json.text
+                            ?? json.response
+                            ?? '';
+                        if (text) yield text;
+                    } catch (_) {
+                        // If backend sends plain text chunks instead of JSON in data:
+                        yield payload;
+                    }
+                } else if (trimmed && !trimmed.startsWith(':') && !trimmed.startsWith('event:')) {
+                    try {
+                        const json = JSON.parse(trimmed);
+                        const text = json.choices?.[0]?.delta?.content
+                            ?? json.choices?.[0]?.delta?.text
+                            ?? json.choices?.[0]?.text
+                            ?? json.choices?.[0]?.message?.content
+                            ?? json.delta?.text
+                            ?? json.content
+                            ?? json.text
+                            ?? json.response
+                            ?? '';
                         if (text) yield text;
                     } catch (_) {}
                 }
@@ -97,7 +124,13 @@ export async function* generateMacroOptions(userPrompt, signal = null, chatHisto
 
         if (contentType.includes('application/json')) {
             const data = await response.json();
-            const reply = data.choices?.[0]?.message?.content || data.content || '';
+            const reply = data.choices?.[0]?.message?.content
+                ?? data.choices?.[0]?.text
+                ?? data.choices?.[0]?.delta?.content
+                ?? data.content
+                ?? data.text
+                ?? data.response
+                ?? '';
             if (reply) yield reply;
             return;
         }
