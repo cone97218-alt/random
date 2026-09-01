@@ -1,4 +1,4 @@
-﻿/**
+/**
  * prompt-builder.js
  *
  * Robust context reader and pipeline builder for SillyTavern AI generation.
@@ -7,12 +7,59 @@
 
 import { getContext } from '../../../../../extensions.js';
 import { substituteParams, getCharacterCardFields } from '../../../../../../script.js';
-import { getSettings } from './storage.js';
-import { DEFAULT_PROMPT_COMPONENTS } from './constants.js';
+import { getSettings, getAllGroups, getMacroById } from './storage.js';
+import { DEFAULT_PROMPT_COMPONENTS, ROLE_LABELS } from './constants.js';
 
 // ── Context readers ───────────────────────────────────────────────────────────
 
 let _cachedWI = { before: '', after: '', depth: '', ts: 0 };
+
+/**
+ * Format an existing macro group into structured reference data for AI prompt.
+ * @param {string} groupId
+ * @returns {string}
+ */
+export function formatExistingGroupForPrompt(groupId) {
+    const groups = getAllGroups();
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return '';
+
+    const lines = [];
+    lines.push(`【用户注入的待参考/整理已有宏配置组】`);
+    lines.push(`- 宏组名称: ${group.name || '未命名组'}`);
+    if (group.category) lines.push(`- 宏组分类: ${group.category}`);
+    const roleLabel = ROLE_LABELS[group.injectionRole ?? 0] || 'System';
+    lines.push(`- 注入身份与深度: ${roleLabel} / 深度 ${group.injectionDepth ?? 4}`);
+    lines.push(`- 注入提示词模板:`);
+    lines.push(group.template ? group.template : '(空模板)');
+    lines.push(`- 包含的宏定义及全部候选项明细:`);
+
+    const macroIds = group.macros || [];
+    if (macroIds.length === 0) {
+        lines.push(`  (该组暂无关联宏定义)`);
+    } else {
+        macroIds.forEach(mId => {
+            const macro = getMacroById(mId);
+            if (!macro) {
+                lines.push(`  * 宏 {{random_${mId}}}: (未找到定义)`);
+                return;
+            }
+            lines.push(`  * 宏 {{random_${macro.id}}} (触发概率: ${macro.triggerProbability ?? 100}%):`);
+            const options = macro.options || [];
+            if (options.length === 0) {
+                lines.push(`    - (暂无候选项)`);
+            } else {
+                options.forEach((opt, idx) => {
+                    const tagStr = opt.tag ? ` [标签: ${opt.tag}]` : '';
+                    const weightStr = (opt.weight && opt.weight !== 1) ? ` [权重: ${opt.weight}]` : '';
+                    lines.push(`    - 选项 ${idx + 1}: ${opt.text || ''}${weightStr}${tagStr}`);
+                });
+            }
+        });
+    }
+
+    return lines.join('\n');
+}
 
 async function _evaluateWorldInfo(userPrompt) {
     const now = Date.now();
@@ -155,9 +202,10 @@ function _readMainChatHistory(x, regexStr, regexReplace = '') {
  *
  * @param {string} userPrompt            - Current user input text
  * @param {Array}  extChatHistory        - Extension chat history turns
+ * @param {Object} [options]             - Optional generation options (e.g. injectedGroupId)
  * @returns {Promise<{ role: string, content: string }[]>}
  */
-export async function buildMessages(userPrompt, extChatHistory = []) {
+export async function buildMessages(userPrompt, extChatHistory = [], options = {}) {
     const s = getSettings();
     const components = (s.aiPromptComponents || DEFAULT_PROMPT_COMPONENTS)
         .filter(c => c.enabled !== false)
@@ -217,8 +265,17 @@ export async function buildMessages(userPrompt, extChatHistory = []) {
             continue;
         }
 
-        // 4. Current user input
+        // 4. Current user input & Injected group context
         if (comp.builtinKey === 'ext_user_input') {
+            if (options?.injectedGroupId) {
+                const groupContext = formatExistingGroupForPrompt(options.injectedGroupId);
+                if (groupContext) {
+                    messages.push({
+                        role: 'system',
+                        content: `${groupContext}\n\n【整理与重构指令提示】\n请以上述注入的已有宏配置组作为核心参考数据，根据接下来的用户需求执行整理、精简去重、扩充候选项、拆分二级嵌套宏或重构主模板。若用户要求重构宏组，请按照规范输出标准 JSON 格式，以便系统直接解析和一键导入。`,
+                    });
+                }
+            }
             if (userPrompt) messages.push({ role: 'user', content: userPrompt });
             continue;
         }

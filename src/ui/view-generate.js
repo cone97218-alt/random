@@ -19,10 +19,19 @@ let _container = null;
 let _abortController = null;
 let _streamedText = '';
 let _rendered = false;
+let _injectedGroupId = null;
+
+const PROMPT_SLOT_TEMPLATES = {
+    clean: '请帮我全面整理并优化上述宏配置组的候选项：去除重复或表意相近的项，修正错别字与语病，规范句式结构，剔除低质内容，保持高质量并按标准结构返回。',
+    expand: '请深度分析上述宏组已有选项的主题风格、语境和叙事维度，扩充 15-20 个更丰富生动、不同维度的全新高质量候选项。',
+    split_nested: '请分析上述宏组的选项与模板，提取其中可抽取的公共维度（如时间、天气、场景、人物动作、情绪氛围等），重构为结构化的二级嵌套宏 {{random_xxx}}，并规划对应的主注入模板。',
+    weight_tag: '请为上述宏组的各个候选项评估并分配合理的抽取权重(weight)，并标注语义分类标签(tag)，输出规范的结构化配置。',
+    polish: '请对上述宏组现有的全部选项进行深度文学润色，增强感官描写张力、情绪氛围与文字质感，提升在角色扮演中的浸入感。',
+};
 
 /**
  * Message history with swipe turns
- * @type {Array<{ prompt: string, swipes: string[], activeIndex: number, structuredData: Object|null }>}
+ * @type {Array<{ prompt: string, swipes: string[], activeIndex: number, structuredData: Object|null, injectedGroupId?: string|null }>}
  */
 let _chatHistory = [];
 
@@ -33,6 +42,7 @@ export async function renderGenerateView(container) {
 
     if (_rendered) {
         _refreshGroupSelect(container);
+        _refreshInjectGroupSelect(container);
         return;
     }
     _rendered = true;
@@ -42,11 +52,13 @@ export async function renderGenerateView(container) {
 
     _bindEvents(container);
     _refreshGroupSelect(container);
+    _refreshInjectGroupSelect(container);
 }
 
 export function refreshGenerateViewSelectors() {
     if (_container && _rendered) {
         _refreshGroupSelect(_container);
+        _refreshInjectGroupSelect(_container);
     }
 }
 
@@ -71,6 +83,57 @@ function _refreshGroupSelect(container) {
         groupSelect.value = prevVal;
     }
     _onGroupSelected(container, groupSelect.value);
+}
+
+function _refreshInjectGroupSelect(container) {
+    const select = container.querySelector('#random-gen-inject-group-select');
+    if (!select) return;
+
+    const prevVal = select.value || _injectedGroupId;
+    select.innerHTML = '<option value="">— 选择注入宏组到提示词 —</option>';
+
+    const groups = getAllGroups();
+    groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = `${g.name || '未命名组'} (${(g.macros || []).length}个宏)`;
+        select.appendChild(opt);
+    });
+
+    if (prevVal && groups.some(g => g.id === prevVal)) {
+        select.value = prevVal;
+    }
+}
+
+function _setInjectedGroup(container, groupId) {
+    _injectedGroupId = groupId || null;
+    const previewEl = container.querySelector('#random-gen-injected-preview');
+    const nameEl = container.querySelector('#random-gen-injected-name');
+    const statsEl = container.querySelector('#random-gen-injected-stats');
+    const selectEl = container.querySelector('#random-gen-inject-group-select');
+
+    if (selectEl) selectEl.value = groupId || '';
+
+    if (!groupId) {
+        if (previewEl) previewEl.style.display = 'none';
+        return;
+    }
+
+    const group = getAllGroups().find(g => g.id === groupId);
+    if (!group) {
+        if (previewEl) previewEl.style.display = 'none';
+        return;
+    }
+
+    let totalOptions = 0;
+    (group.macros || []).forEach(mId => {
+        const m = getMacroById(mId);
+        if (m && Array.isArray(m.options)) totalOptions += m.options.length;
+    });
+
+    if (nameEl) nameEl.textContent = group.name || '未命名组';
+    if (statsEl) statsEl.textContent = `(${group.macros?.length || 0} 个宏定义 · 共 ${totalOptions} 条选项)`;
+    if (previewEl) previewEl.style.display = 'flex';
 }
 
 function _onGroupSelected(container, groupId) {
@@ -100,6 +163,53 @@ function _bindEvents(container) {
         container.querySelector('#random-gen-hint').style.display = e.target.value ? 'none' : '';
     });
 
+    // Injected Group selector events
+    container.querySelector('#random-gen-inject-group-select')?.addEventListener('change', e => {
+        _setInjectedGroup(container, e.target.value);
+        if (e.target.value) {
+            showToast('已将宏组注入到 AI 提示词上下文！', 'success');
+        }
+    });
+
+    container.querySelector('#random-gen-inject-curr-btn')?.addEventListener('click', () => {
+        const currGroupId = container.querySelector('#random-gen-group-select')?.value;
+        if (!currGroupId) {
+            showToast('请先在顶部「目标宏组」中选择一个宏配置组', 'info');
+            return;
+        }
+        _setInjectedGroup(container, currGroupId);
+        const g = getAllGroups().find(item => item.id === currGroupId);
+        showToast(`已将当前宏组「${g?.name || currGroupId}」注入提示词上下文！`, 'success');
+    });
+
+    container.querySelector('#random-gen-injected-clear-btn')?.addEventListener('click', () => {
+        _setInjectedGroup(container, null);
+        showToast('已取消宏组注入', 'info');
+    });
+
+    // Prompt Functional Slots Chips
+    container.querySelectorAll('.random-gen-chip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const slotKey = btn.dataset.slot;
+            const templateText = PROMPT_SLOT_TEMPLATES[slotKey];
+            if (!templateText) return;
+
+            // Auto-inject current target group if not yet injected
+            if (!_injectedGroupId) {
+                const currGroupId = container.querySelector('#random-gen-group-select')?.value;
+                if (currGroupId) {
+                    _setInjectedGroup(container, currGroupId);
+                }
+            }
+
+            const inputEl = container.querySelector('#random-gen-input');
+            if (inputEl) {
+                inputEl.value = templateText;
+                inputEl.focus();
+            }
+        });
+    });
+
     container.querySelector('#random-gen-send-btn')?.addEventListener('click', () => {
         const userPrompt = container.querySelector('#random-gen-input')?.value.trim();
         if (!userPrompt) {
@@ -119,6 +229,7 @@ function _bindEvents(container) {
     container.querySelector('#random-gen-clear-result-btn')?.addEventListener('click', () => {
         container.querySelector('#random-gen-result').style.display = 'none';
         container.querySelector('#random-gen-option-edit-list').innerHTML = '';
+        container.querySelector('#random-gen-structured-preview').style.display = 'none';
         _streamedText = '';
     });
 
@@ -128,6 +239,10 @@ function _bindEvents(container) {
 
     container.querySelector('#random-gen-import-btn')?.addEventListener('click', () => {
         _importOptions(container);
+    });
+
+    container.querySelector('#random-gen-apply-update-btn')?.addEventListener('click', () => {
+        _applyUpdateToInjectedGroup(container);
     });
 
     // Send on Ctrl+Enter
@@ -174,12 +289,13 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
             swipes: [''],
             activeIndex: 0,
             structuredData: null,
+            injectedGroupId: _injectedGroupId,
         };
         _chatHistory.push(currentTurn);
         turnIdx = _chatHistory.length - 1;
 
         // Render User bubble
-        const userBubble = _createUserBubble(turnIdx, userPrompt, container);
+        const userBubble = _createUserBubble(turnIdx, userPrompt, container, _injectedGroupId);
         chatEl.appendChild(userBubble);
     }
 
@@ -196,7 +312,8 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
     const historyContext = _chatHistory.slice(0, turnIdx);
 
     try {
-        for await (const chunk of generateMacroOptions(userPrompt, _abortController.signal, historyContext)) {
+        const genOptions = { injectedGroupId: currentTurn.injectedGroupId || _injectedGroupId };
+        for await (const chunk of generateMacroOptions(userPrompt, _abortController.signal, historyContext, genOptions)) {
             _streamedText += chunk;
             currentTurn.swipes[currentTurn.activeIndex] = _streamedText;
             aiBubble.querySelector('.random-gen-bubble-text').textContent = _streamedText;
@@ -220,12 +337,27 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
 
 // ── Bubble Builders ───────────────────────────────────────────────────────────
 
-function _createUserBubble(turnIdx, userPrompt, container) {
+function _createUserBubble(turnIdx, userPrompt, container, injectedGroupId = null) {
     const userBubble = document.createElement('div');
     userBubble.className = 'random-gen-bubble random-gen-bubble--user';
     userBubble.dataset.turn = turnIdx;
+
+    let injectedTagHtml = '';
+    if (injectedGroupId) {
+        const group = getAllGroups().find(g => g.id === injectedGroupId);
+        if (group) {
+            injectedTagHtml = `
+                <div class="random-gen-bubble-injected-tag">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>已注入参考宏组: <strong>${escapeHtml(group.name || injectedGroupId)}</strong></span>
+                </div>
+            `;
+        }
+    }
+
     userBubble.innerHTML = `
         <div class="random-gen-bubble-content">
+            ${injectedTagHtml}
             <div class="random-gen-bubble-text">${escapeHtml(userPrompt)}</div>
             <div class="random-gen-bubble-footer">
                 <button class="random-icon-btn--xs random-user-edit" title="重新编辑并重Roll此消息"><i class="fa-solid fa-pen"></i></button>
@@ -333,7 +465,7 @@ function _rebuildChatDOM(container) {
     }
 
     _chatHistory.forEach((turn, idx) => {
-        const userBubble = _createUserBubble(idx, turn.prompt, container);
+        const userBubble = _createUserBubble(idx, turn.prompt, container, turn.injectedGroupId);
         chatEl.appendChild(userBubble);
 
         const aiBubble = _createAIBubble(idx);
@@ -349,26 +481,48 @@ function _rebuildChatDOM(container) {
 function _populateResultEditor(container, rawText, structured) {
     const resultEl = container.querySelector('#random-gen-result');
     const editListEl = container.querySelector('#random-gen-option-edit-list');
+    const structPreviewEl = container.querySelector('#random-gen-structured-preview');
+    const structNameEl = container.querySelector('#random-gen-structured-name');
+    const structCountEl = container.querySelector('#random-gen-structured-count');
+    const structTemplateEl = container.querySelector('#random-gen-structured-template');
+    const updateBtn = container.querySelector('#random-gen-apply-update-btn');
+    const importBtn = container.querySelector('#random-gen-import-btn');
+
     resultEl.style.display = '';
     editListEl.innerHTML = '';
 
-    if (structured) {
+    if (structured && structured.macros && structured.macros.length > 0) {
         // Structured Full Group
-        const infoRow = document.createElement('div');
-        infoRow.className = 'random-option-edit-info-row';
-        infoRow.innerHTML = `
-            <span><i class="fa-solid fa-cube"></i> 检测到完整宏组: <strong>${escapeHtml(structured.groupName || '新建宏组')}</strong></span>
-            <span style="color:var(--random-text-muted);">（共 ${structured.macros?.length || 0} 个宏）</span>
-        `;
-        editListEl.appendChild(infoRow);
+        if (structPreviewEl) {
+            structPreviewEl.style.display = 'flex';
+            if (structNameEl) structNameEl.textContent = structured.groupName || 'AI 生成/整理宏组';
+            if (structCountEl) structCountEl.textContent = `共 ${structured.macros.length} 个宏定义`;
+            if (structTemplateEl) structTemplateEl.textContent = structured.template || '(无模板)';
+        }
 
         (structured.macros || []).forEach(m => {
             (m.options || []).forEach(opt => {
                 _addEditableRow(container, opt.text || opt, opt.weight || 1, m.id);
             });
         });
-        showToast(`AI 已规划完整宏组: ${structured.groupName}`, 'success');
+
+        if (updateBtn) {
+            updateBtn.style.display = _injectedGroupId ? '' : 'none';
+        }
+        if (importBtn) {
+            const span = importBtn.querySelector('span');
+            if (span) span.textContent = '另存为新宏组';
+        }
+
+        showToast(`AI 已完成宏组智能整理: ${structured.groupName || '宏配置组'}`, 'success');
     } else {
+        if (structPreviewEl) structPreviewEl.style.display = 'none';
+        if (updateBtn) updateBtn.style.display = 'none';
+        if (importBtn) {
+            const span = importBtn.querySelector('span');
+            if (span) span.textContent = '确认导入';
+        }
+
         const options = parseAIResponseToOptions(rawText);
         if (options.length === 0) {
             showToast('AI 未返回有效选项', 'info');
@@ -399,6 +553,75 @@ function _addEditableRow(container, text, weight = 1, macroTag = '') {
     `;
     row.querySelector('.random-opt-edit-delete').addEventListener('click', () => row.remove());
     listEl.appendChild(row);
+}
+
+// ── Update Injected Group in Place ────────────────────────────────────────────
+
+function _applyUpdateToInjectedGroup(container) {
+    if (!_injectedGroupId) {
+        showToast('未检测到已注入的宏组', 'error');
+        return;
+    }
+
+    const group = getAllGroups().find(g => g.id === _injectedGroupId);
+    if (!group) {
+        showToast('找不到已注入的原宏配置组', 'error');
+        return;
+    }
+
+    const activeTurn = _chatHistory[_chatHistory.length - 1];
+    const structured = activeTurn?.structuredData;
+    const rows = container.querySelectorAll('.random-option-edit-row');
+
+    if (structured && structured.macros && structured.macros.length > 0) {
+        // Collect edited options from UI rows mapped to macro ids
+        const macroOptsMap = new Map();
+        rows.forEach(row => {
+            const text   = row.querySelector('.random-opt-edit-text')?.value.trim();
+            const weight = Number(row.querySelector('.random-opt-edit-weight')?.value) || 1;
+            const tagEl  = row.querySelector('.random-macro-chip-id');
+            const mId    = tagEl ? tagEl.textContent.replace('{{random_', '').replace('}}', '').trim() : '';
+            if (text && mId) {
+                if (!macroOptsMap.has(mId)) macroOptsMap.set(mId, []);
+                macroOptsMap.get(mId).push({ text, weight, tag: '' });
+            }
+        });
+
+        // Update group properties
+        if (structured.template) group.template = structured.template;
+        if (structured.groupName) group.name = structured.groupName;
+        group.macros = structured.macros.map(m => m.id);
+
+        structured.macros.forEach(m => {
+            const opts = macroOptsMap.has(m.id)
+                ? macroOptsMap.get(m.id)
+                : (m.options || []).map(o => ({
+                    text: typeof o === 'string' ? o : o.text,
+                    weight: Number(o.weight) || 1,
+                    tag: o.tag || '',
+                }));
+
+            saveMacro({
+                id: m.id,
+                triggerProbability: Number(m.triggerProbability ?? 100),
+                options: opts,
+            });
+        });
+
+        saveGroup(group);
+        _refreshGroupSelect(container);
+        _refreshInjectGroupSelect(container);
+        _setInjectedGroup(container, group.id);
+        refreshGroupList();
+
+        container.querySelector('#random-gen-result').style.display = 'none';
+        container.querySelector('#random-gen-option-edit-list').innerHTML = '';
+
+        showToast(`🎉 成功更新原宏组「${group.name}」及 ${structured.macros.length} 个关联宏！`, 'success');
+    } else {
+        // Fallback: normal options update into group
+        _importOptions(container);
+    }
 }
 
 // ── Import Logic ──────────────────────────────────────────────────────────────

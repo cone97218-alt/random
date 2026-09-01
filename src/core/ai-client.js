@@ -63,11 +63,12 @@ async function parseErrorResponse(response) {
  * @param {string} userPrompt - Current user input
  * @param {AbortSignal} [signal] - Optional abort signal
  * @param {Array} [chatHistory] - Extension chat history turns
+ * @param {Object} [options] - Generation options (e.g. injectedGroupId)
  * @yields {string} Text chunks
  */
-export async function* generateMacroOptions(userPrompt, signal = null, chatHistory = []) {
+export async function* generateMacroOptions(userPrompt, signal = null, chatHistory = [], options = {}) {
     const ctx = getContext();
-    const messages = await buildMessages(userPrompt, chatHistory);
+    const messages = await buildMessages(userPrompt, chatHistory, options);
 
     try {
         let model = '';

@@ -17,11 +17,42 @@
         </div>
     </div>
 
+    <!-- ── Injected Macro Group Context Card / Slot ── -->
+    <div class="random-gen-slot-bar" id="random-gen-slot-bar">
+        <div class="random-gen-slot-header">
+            <div class="random-gen-slot-title">
+                <i class="fa-solid fa-boxes-stacked" style="color:var(--random-accent);"></i>
+                <span>注入已有宏组上下文</span>
+            </div>
+            <div class="random-gen-slot-controls">
+                <select class="random-select random-select--sm" id="random-gen-inject-group-select">
+                    <option value="">— 选择注入宏组到提示词 —</option>
+                </select>
+                <button class="random-btn random-btn--xs random-btn--secondary" id="random-gen-inject-curr-btn" type="button" title="注入上方已选的目标宏组">
+                    <i class="fa-solid fa-arrow-down-to-bracket"></i>
+                    <span>注入当前组</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Injected Group Preview Chip Container -->
+        <div class="random-gen-injected-preview" id="random-gen-injected-preview" style="display:none;">
+            <div class="random-gen-injected-info">
+                <i class="fa-solid fa-layer-group" style="color:var(--random-accent);"></i>
+                <span class="random-gen-injected-name" id="random-gen-injected-name"></span>
+                <span class="random-gen-injected-stats" id="random-gen-injected-stats"></span>
+            </div>
+            <button class="random-icon-btn--xs random-icon-btn--danger" id="random-gen-injected-clear-btn" type="button" title="取消注入">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Chat area -->
     <div class="random-generate-chat" id="random-gen-chat">
         <div class="random-gen-hint" id="random-gen-hint">
-            <i class="fa-solid fa-lightbulb"></i>
-            <span>选择目标宏组后，在下方输入对 AI 的描述要求</span>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>选择或注入已有宏组后，点击下方「整理/扩充/嵌套」等功能卡槽，或输入要求让 AI 智能整理</span>
         </div>
     </div>
 
@@ -30,12 +61,22 @@
         <div class="random-generate-result-header">
             <span class="random-generate-result-label">
                 <i class="fa-solid fa-list-check"></i>
-                <span>AI 返回结果（可编辑）</span>
+                <span id="random-gen-result-title">AI 生成/整理结果（可编辑）</span>
             </span>
-            <button class="random-btn random-btn--sm" id="random-gen-clear-result-btn">
+            <button class="random-btn random-btn--sm" id="random-gen-clear-result-btn" title="清空结果">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>
+
+        <!-- Structured Group Overview (when full group returned) -->
+        <div class="random-gen-structured-preview" id="random-gen-structured-preview" style="display:none;">
+            <div class="random-gen-structured-header">
+                <span class="random-gen-structured-title" id="random-gen-structured-name"></span>
+                <span class="random-inspect-meta-pill" id="random-gen-structured-count"></span>
+            </div>
+            <div class="random-gen-structured-template" id="random-gen-structured-template"></div>
+        </div>
+
         <div class="random-option-edit-list" id="random-gen-option-edit-list">
             <!-- Editable option rows rendered here -->
         </div>
@@ -45,6 +86,10 @@
                 <span>添加一行</span>
             </button>
             <div class="random-toolbar-spacer"></div>
+            <button class="random-btn random-btn--sm random-btn--secondary" id="random-gen-apply-update-btn" style="display:none;" title="直接用整理后的内容更新原宏组">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>更新原宏组</span>
+            </button>
             <button class="random-btn random-btn--primary" id="random-gen-import-btn">
                 <i class="fa-solid fa-file-import"></i>
                 <span>确认导入</span>
@@ -52,10 +97,36 @@
         </div>
     </div>
 
+    <!-- ── Prompt Functional Slots Bar ── -->
+    <div class="random-gen-chips-bar">
+        <div class="random-gen-chips-scroll">
+            <button class="random-gen-chip-btn" data-slot="clean" type="button" title="去除重复项、修正错别字并规范格式">
+                <i class="fa-solid fa-broom"></i>
+                <span>整理与去重</span>
+            </button>
+            <button class="random-gen-chip-btn" data-slot="expand" type="button" title="扩充15-20个更丰富生动的高质量选项">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+                <span>扩充新选项</span>
+            </button>
+            <button class="random-gen-chip-btn" data-slot="split_nested" type="button" title="拆分公共维度为结构化二级嵌套宏 {{random_xxx}}">
+                <i class="fa-solid fa-sitemap"></i>
+                <span>拆分嵌套宏</span>
+            </button>
+            <button class="random-gen-chip-btn" data-slot="weight_tag" type="button" title="智能标注标签并设定抽取权重">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <span>权重与标签</span>
+            </button>
+            <button class="random-gen-chip-btn" data-slot="polish" type="button" title="文学修辞深度润色与情绪张力强化">
+                <i class="fa-solid fa-feather"></i>
+                <span>深度文学润色</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Input area -->
     <div class="random-generate-input-area">
         <textarea class="random-textarea random-gen-textarea" id="random-gen-input"
-            placeholder="描述你想要的宏选项内容，例如：生成10个描述天气的短句，包含晴天、雨天、阴天等变化..." rows="2"></textarea>
+            placeholder="输入具体需求，或点击上方功能卡槽让 AI 智能整理/扩充..." rows="2"></textarea>
         <div class="random-generate-actions">
             <button class="random-gen-send-btn" id="random-gen-send-btn" title="发送 (Ctrl+Enter)">
                 <i class="fa-solid fa-paper-plane"></i>
