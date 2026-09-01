@@ -6,7 +6,20 @@
  */
 
 import { getContext } from '../../../../../extensions.js';
-import { substituteParams, getCharacterCardFields } from '../../../../../../script.js';
+import {
+    substituteParams,
+    getCharacterCardFields,
+    characters,
+    this_chid,
+    name2,
+    name1,
+    extension_prompts,
+} from '../../../../../../script.js';
+import {
+    prepareOpenAIMessages,
+    setOpenAIMessages,
+    setOpenAIMessageExamples,
+} from '../../../../../openai.js';
 import { getSettings, getAllGroups, getMacroById } from './storage.js';
 import { DEFAULT_PROMPT_COMPONENTS, ROLE_LABELS } from './constants.js';
 
@@ -218,41 +231,43 @@ async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefT
 
     try {
         const ctx = getContext();
-        const { prepareOpenAIMessages, setOpenAIMessages, setOpenAIMessageExamples } = await import('../../../../../openai.js');
-        const { characters, this_chid, name2 } = await import('../../../../../script.js');
-
         const char = (characters && this_chid !== undefined && characters[this_chid]) ? characters[this_chid] : {};
         const charData = char.data || {};
         const rawChat = ctx.chat || [];
 
+        // Pre-evaluate World Info for before/after
+        const wiData = await _evaluateWorldInfo(userPrompt);
+        const cardFields = typeof getCharacterCardFields === 'function' ? getCharacterCardFields() : {};
+
         const [presetChat] = await prepareOpenAIMessages({
             name2: name2 || char.name || 'Assistant',
-            charDescription: char.description || charData.description || '',
-            charPersonality: char.personality || charData.personality || '',
-            scenario: char.scenario || charData.scenario || '',
-            worldInfoBefore: '',
-            worldInfoAfter: '',
+            charDescription: cardFields.description || char.description || charData.description || '',
+            charPersonality: cardFields.personality || char.personality || charData.personality || '',
+            scenario: cardFields.scenario || char.scenario || charData.scenario || '',
+            worldInfoBefore: wiData.before || '',
+            worldInfoAfter: wiData.after || '',
             bias: '',
             type: 'normal',
             quietPrompt: '',
             quietImage: '',
-            extensionPrompts: {},
+            extensionPrompts: extension_prompts || {},
             cyclePrompt: '',
-            systemPromptOverride: '',
-            jailbreakPromptOverride: '',
+            systemPromptOverride: char.system_prompt || charData.system_prompt || '',
+            jailbreakPromptOverride: char.post_history_instructions || charData.post_history_instructions || '',
             messages: typeof setOpenAIMessages === 'function' ? setOpenAIMessages(rawChat) : [],
             messageExamples: typeof setOpenAIMessageExamples === 'function'
-                ? setOpenAIMessageExamples(charData.mes_example ? [charData.mes_example] : [])
+                ? setOpenAIMessageExamples(charData.mes_example ? [charData.mes_example] : (char.mes_example ? [char.mes_example] : []))
                 : [],
         }, false);
 
         if (Array.isArray(presetChat) && presetChat.length > 0) {
             presetChat.forEach(msg => {
+                if (!msg) return;
                 let text = '';
                 if (typeof msg.content === 'string') {
                     text = msg.content;
                 } else if (Array.isArray(msg.content)) {
-                    text = msg.content.map(c => c.text || '').join('');
+                    text = msg.content.map(c => typeof c === 'string' ? c : (c?.text || '')).join('');
                 }
                 if (text && text.trim()) {
                     messages.push({ role: msg.role || 'system', content: text.trim() });
@@ -260,7 +275,15 @@ async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefT
             });
         }
     } catch (err) {
-        console.warn('[Random Prompt] prepareOpenAIMessages from preset failed, falling back:', err);
+        console.warn('[Random Prompt] prepareOpenAIMessages from preset failed:', err);
+    }
+
+    // Fallback if preset produced 0 messages (e.g. no active chat / character)
+    if (messages.length === 0) {
+        const cardFields = typeof getCharacterCardFields === 'function' ? getCharacterCardFields() : {};
+        if (cardFields.description) messages.push({ role: 'system', content: `[Character Description]\n${cardFields.description}` });
+        if (cardFields.personality) messages.push({ role: 'system', content: `[Character Personality]\n${cardFields.personality}` });
+        if (cardFields.scenario) messages.push({ role: 'system', content: `[Scenario]\n${cardFields.scenario}` });
     }
 
     // Append macro system task specification & injected macro group context
