@@ -422,9 +422,9 @@
     display:        flex;
     flex-direction: column;
     gap:            8px;
-    padding-left:   10px;
-    border-left:    2px solid var(--random-border);
-    margin-left:    6px;
+    padding-left:   0;
+    margin-left:    0;
+    border-left:    none;
 }
 .random-category-section--collapsed .random-category-header {
     opacity: 0.85;
@@ -1042,6 +1042,9 @@
 
 /* ── Mobile Responsive Optimizations (< 600px) ────────── */
 @media (max-width: 600px) {
+    .random-group-list {
+        padding: 8px 10px !important;
+    }
     .random-modal-overlay {
         align-items:     flex-start !important;
         justify-content: center !important;
