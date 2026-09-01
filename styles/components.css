@@ -2106,22 +2106,7 @@ details:not([open]) .random-gen-chevron {
     color:           var(--random-text-muted);
 }
 .random-swipe-rescan {
-    margin-left:    4px;
-    padding:        2px 6px !important;
-    border-radius:  var(--random-radius-sm);
-    background:     var(--random-tag-bg);
-    border:         1px solid var(--random-border);
-    color:          var(--random-accent) !important;
-    display:        inline-flex;
-    align-items:    center;
-    gap:            4px;
-    font-size:      0.9em;
-    cursor:         pointer;
-    transition:     all var(--random-transition);
-}
-.random-swipe-rescan:hover {
-    background:     var(--random-input-bg);
-    border-color:   var(--random-accent);
+    margin-left: 2px;
 }
 
 /* ── User Bubble Inline Edit ── */

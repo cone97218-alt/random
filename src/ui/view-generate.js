@@ -606,7 +606,7 @@ function _createAIBubble(turnIdx) {
                 <span class="random-gen-swipe-counter">1/1</span>
                 <button class="random-icon-btn--xs random-swipe-next" title="下一条 (Swipe Right)"><i class="fa-solid fa-chevron-right"></i></button>
                 <button class="random-icon-btn--xs random-swipe-reroll" title="重新生成 (Swipe/Reroll)"><i class="fa-solid fa-rotate"></i></button>
-                <button class="random-swipe-rescan" title="从该条消息提取选项/宏组并打开结果抽屉"><i class="fa-solid fa-table-list"></i> 提取/导入</button>
+                <button class="random-icon-btn--xs random-swipe-rescan" title="从该条消息提取选项/宏组并打开结果抽屉"><i class="fa-solid fa-table-list"></i></button>
             </div>
         </div>
     `;
