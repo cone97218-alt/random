@@ -22,6 +22,7 @@ let _editingGroupId = null;   // null = new group
 let _editingMacroId = null;   // null = new macro
 let _groupMacros   = [];      // macros being edited in the group modal
 let _macroOptions  = [];      // options being edited in the macro modal
+let _showMacroWeights = false; // whether weight column is displayed in macro modal
 let _showMacroTags = false;   // whether tag column is displayed in macro modal
 let _rendered = false;
 let _groupListViewMode = 'flat'; // 'flat' | 'tree'
@@ -1959,6 +1960,7 @@ function openMacroModal(macroId, addToGroup, pushToStack = false) {
         : (getMacroById(macroId) || _groupMacros.find(m => m.id === macroId) || { id: macroId, triggerProbability: 100, options: [] });
     
     _macroOptions = (macro.options || []).map(o => ({ ...o }));
+    _showMacroWeights = _macroOptions.some(o => o.weight !== undefined && o.weight !== null && Number(o.weight) !== 1);
     _showMacroTags = _macroOptions.some(o => o.tag && String(o.tag).trim() !== '');
     _multilineMode = false;
     
@@ -1972,6 +1974,7 @@ function openMacroModal(macroId, addToGroup, pushToStack = false) {
     _renderMacroBreadcrumbs(modal, isNew, macro.id);
 
     // Reset toolbar controls
+    _updateToggleWeightBtn(modal);
     _updateToggleTagBtn(modal);
     _updateMultilineBtn(modal);
 
@@ -2058,7 +2061,12 @@ function _restoreMacroDraftState(modal, state) {
     const isNew = state.isNew;
     
     _macroOptions = (state.draftOptions || []).map(o => ({ ...o }));
-    _showMacroTags = _macroOptions.some(o => o.tag && String(o.tag).trim() !== '');
+    _showMacroWeights = state.showMacroWeights !== undefined
+        ? !!state.showMacroWeights
+        : _macroOptions.some(o => o.weight !== undefined && o.weight !== null && Number(o.weight) !== 1);
+    _showMacroTags = state.showMacroTags !== undefined
+        ? !!state.showMacroTags
+        : _macroOptions.some(o => o.tag && String(o.tag).trim() !== '');
     _multilineMode = !!state.multilineMode;
 
     _setVal(modal, '#random-mm-id',   state.draftId || state.macroId || '');
@@ -2068,6 +2076,7 @@ function _restoreMacroDraftState(modal, state) {
     modal.dataset.addToGroup = state.addToGroup ? '1' : '0';
 
     _renderMacroBreadcrumbs(modal, isNew, state.draftId || state.macroId);
+    _updateToggleWeightBtn(modal);
     _updateToggleTagBtn(modal);
     _updateMultilineBtn(modal);
 
@@ -2109,6 +2118,21 @@ function _parseMultilineText(text) {
         }
     });
     return options;
+}
+
+function _updateToggleWeightBtn(modal) {
+    const btn = modal.querySelector('#random-mm-toggle-weight-btn');
+    const textEl = modal.querySelector('#random-mm-toggle-weight-text');
+    if (!btn) return;
+    if (_showMacroWeights) {
+        btn.classList.add('random-btn--active');
+        if (textEl) textEl.textContent = '隐藏权重';
+        btn.title = '隐藏权重列';
+    } else {
+        btn.classList.remove('random-btn--active');
+        if (textEl) textEl.textContent = '权重';
+        btn.title = '显示权重列';
+    }
 }
 
 function _updateToggleTagBtn(modal) {
@@ -2271,6 +2295,13 @@ function _bindMacroModal(container) {
         fullscreenBtn.title = isFull ? '还原窗口' : '全屏 / 置顶编辑';
     });
 
+    // Weight Column Toggle
+    modal.querySelector('#random-mm-toggle-weight-btn')?.addEventListener('click', () => {
+        _showMacroWeights = !_showMacroWeights;
+        _updateToggleWeightBtn(modal);
+        if (!_multilineMode) _renderOptionList(modal);
+    });
+
     // Tag Column Toggle
     modal.querySelector('#random-mm-toggle-tag-btn')?.addEventListener('click', () => {
         _showMacroTags = !_showMacroTags;
@@ -2353,13 +2384,16 @@ function _renderOptionList(modal) {
     _macroOptions.forEach((opt, idx) => {
         const row = document.createElement('div');
         row.className = 'random-option-row';
+        const weightInputHtml = _showMacroWeights
+            ? `<input type="number" class="random-input random-opt-weight" value="${opt.weight ?? 1}" min="0" step="1" title="抽取权重" placeholder="权重" />`
+            : '';
         const tagInputHtml = _showMacroTags
             ? `<input type="text" class="random-input random-opt-tag" value="${escapeHtml(opt.tag || '')}" placeholder="标签(可选)" title="标签(可选)" />`
             : '';
 
         row.innerHTML = `
             <input type="text"   class="random-input random-opt-text"   value="${escapeHtml(opt.text || '')}"  placeholder="选项内容（支持嵌套 {{random_xxx}}）" />
-            <input type="number" class="random-input random-opt-weight" value="${opt.weight ?? 1}" min="0" step="1" title="抽取权重" placeholder="权重" />
+            ${weightInputHtml}
             ${tagInputHtml}
             <button class="random-icon-btn--xs random-opt-delete random-icon-btn--danger" title="删除">
                 <i class="fa-solid fa-xmark"></i>
@@ -2375,9 +2409,11 @@ function _renderOptionList(modal) {
             _renderChildMacrosSection(modal);
         });
 
-        row.querySelector('.random-opt-weight').addEventListener('input', e => {
-            _macroOptions[idx].weight = Number(e.target.value) || 1;
-        });
+        if (_showMacroWeights) {
+            row.querySelector('.random-opt-weight')?.addEventListener('input', e => {
+                _macroOptions[idx].weight = Number(e.target.value) || 1;
+            });
+        }
         if (_showMacroTags) {
             row.querySelector('.random-opt-tag')?.addEventListener('input', e => {
                 _macroOptions[idx].tag = e.target.value;
