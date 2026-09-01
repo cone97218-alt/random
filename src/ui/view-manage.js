@@ -759,7 +759,12 @@ export async function openInspectModal() {
     }
     const modal = document.getElementById('random-inspect-modal');
     if (!modal) return;
-    _renderInspectContent(modal);
+
+    try {
+        _renderInspectContent(modal);
+    } catch (err) {
+        console.error('[Random Inspector] Failed to render inspect content:', err);
+    }
 
     // Sync tab and pane states
     const tabNext = modal.querySelector('#random-inspect-tab-next');
@@ -860,7 +865,7 @@ export function getInspectData() {
         if (willReroll) {
             const tempState = {
                 currentValues: { ...(state.currentValues || {}) },
-                pinnedMacros: { ...(state.pinnedMacros || {}) },
+                pinnedMacros: Array.isArray(state.pinnedMacros) ? [...state.pinnedMacros] : [],
                 lastRolledOptions: { ...(state.lastRolledOptions || {}) },
             };
             const sim = resolveGroupTemplate(group, tempState, true);
@@ -1062,7 +1067,7 @@ function _renderInspectContent(modal) {
             // Fresh simulation for next round's roll
             const tempState = {
                 currentValues: { ...(state.currentValues || {}) },
-                pinnedMacros: { ...(state.pinnedMacros || {}) },
+                pinnedMacros: Array.isArray(state.pinnedMacros) ? [...state.pinnedMacros] : [],
                 lastRolledOptions: { ...(state.lastRolledOptions || {}) },
             };
             const sim = resolveGroupTemplate(group, tempState, true);

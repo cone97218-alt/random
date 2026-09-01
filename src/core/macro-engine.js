@@ -137,8 +137,11 @@ function resolveTemplate(template, cache, callStack = []) {
  * @returns {{ resolved: string, newValues: Object }}
  */
 export function resolveGroupTemplate(group, groupChatState, forceReroll = false) {
-    const pinnedMacros = new Set(groupChatState.pinnedMacros || []);
-    const existingValues = groupChatState.currentValues || {};
+    const rawPinned = groupChatState?.pinnedMacros;
+    const pinnedMacros = rawPinned instanceof Set
+        ? rawPinned
+        : new Set(Array.isArray(rawPinned) ? rawPinned : []);
+    const existingValues = groupChatState?.currentValues || {};
     
     // Build a cache pre-seeded with pinned and existing values
     const cache = new Map();
