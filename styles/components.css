@@ -482,10 +482,10 @@
 .random-group-card-category {
     font-size:     0.72em;
     color:         var(--random-text-muted);
-    background:    rgba(0, 0, 0, 0.22);
+    background:    var(--random-tag-bg);
     border-radius: 3px;
     padding:       1px 6px;
-    border:        1px solid rgba(255, 255, 255, 0.06);
+    border:        1px solid var(--random-border);
     white-space:   nowrap;
     flex-shrink:   0;
     display:       inline-flex;
@@ -495,8 +495,8 @@
 .random-group-card-pool {
     font-size:     0.72em;
     color:         var(--random-accent);
-    background:    rgba(var(--random-accent-rgb, 120, 150, 255), 0.12);
-    border:        1px solid rgba(var(--random-accent-rgb, 120, 150, 255), 0.28);
+    background:    rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
+    border:        1px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.28);
     border-radius: 3px;
     padding:       1px 6px;
     white-space:   nowrap;
@@ -563,14 +563,14 @@
     font-weight:    500;
 }
 .random-status-badge--injected {
-    background:     rgba(90, 160, 100, 0.16);
+    background:     rgba(var(--SmartThemeQuoteColor-rgb, var(--random-accent-rgb, 120, 180, 120)), 0.16);
     color:          var(--random-success);
-    border:         1px solid rgba(90, 160, 100, 0.32);
+    border:         1px solid rgba(var(--SmartThemeQuoteColor-rgb, var(--random-accent-rgb, 120, 180, 120)), 0.32);
 }
 .random-status-badge--skipped {
-    background:     rgba(150, 140, 125, 0.14);
+    background:     rgba(var(--SmartThemeBorderColor-rgb, 150, 140, 125), 0.14);
     color:          var(--random-text-muted);
-    border:         1px solid rgba(150, 140, 125, 0.25);
+    border:         1px solid rgba(var(--SmartThemeBorderColor-rgb, 150, 140, 125), 0.25);
 }
 .random-status-dot {
     width:          6px;
@@ -609,16 +609,16 @@
 }
 .random-macro-chip--pinned {
     border-color:  var(--SmartThemeQuoteColor, var(--random-quote-color, var(--random-accent)));
-    background:    rgba(180,155,120,0.12);
+    background:    rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
 }
 .random-macro-chip--root {
-    border-color: rgba(180, 155, 120, 0.45);
-    background: rgba(180, 155, 120, 0.09);
+    border-color: rgba(var(--random-accent-rgb, 180, 155, 120), 0.45);
+    background: rgba(var(--random-accent-rgb, 180, 155, 120), 0.09);
 }
 .random-macro-chip-subcount {
     font-size: 0.72em;
     color: var(--random-accent);
-    background: rgba(180, 155, 120, 0.18);
+    background: rgba(var(--random-accent-rgb, 180, 155, 120), 0.18);
     border-radius: 3px;
     padding: 0 4px;
     margin-right: 2px;
@@ -627,7 +627,7 @@
 }
 .random-macro-chip-rootbadge {
     font-size: 0.7em;
-    color: #fff;
+    color: var(--random-bg);
     background: var(--random-accent);
     border-radius: 3px;
     padding: 0 3px;
@@ -675,7 +675,7 @@
 .random-macro-expand-btn:hover,
 .random-macro-collapse-btn:hover {
     border-color: var(--random-accent);
-    background:   rgba(180, 155, 120, 0.12);
+    background:   rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
     transform:    scale(1.03);
 }
 
@@ -931,15 +931,15 @@
     border-radius: 4px;
     font-family:   monospace;
     font-size:     0.78em;
-    background:    rgba(var(--random-accent-rgb, 120, 150, 255), 0.12);
-    border:        1px solid rgba(var(--random-accent-rgb, 120, 150, 255), 0.3);
+    background:    rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
+    border:        1px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.3);
     color:         var(--random-accent);
     cursor:        pointer;
     user-select:   none;
     transition:    background 0.15s, transform 0.15s;
 }
 .random-mm-insert-chip:hover {
-    background: rgba(var(--random-accent-rgb, 120, 150, 255), 0.28);
+    background: rgba(var(--random-accent-rgb, 180, 155, 120), 0.28);
     transform:  scale(1.04);
 }
 
@@ -960,7 +960,7 @@
 
 /* ── Referenced Child Macros Drill-Down Section ──────── */
 .random-mm-child-section {
-    background:    rgba(0, 0, 0, 0.22);
+    background:    var(--random-tag-bg);
     border:        1px solid var(--random-border);
     border-radius: var(--random-radius-sm);
     padding:       8px 10px;
@@ -990,24 +990,24 @@
     border-radius: 4px;
     font-family:   monospace;
     font-size:     0.8em;
-    background:    rgba(var(--random-accent-rgb, 120, 150, 255), 0.12);
-    border:        1px solid rgba(var(--random-accent-rgb, 120, 150, 255), 0.35);
+    background:    rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
+    border:        1px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.35);
     color:         var(--random-accent);
     cursor:        pointer;
     user-select:   none;
     transition:    background 0.15s, transform 0.15s;
 }
 .random-mm-child-chip:hover {
-    background: rgba(var(--random-accent-rgb, 120, 150, 255), 0.28);
+    background: rgba(var(--random-accent-rgb, 180, 155, 120), 0.28);
     transform:  scale(1.03);
 }
 .random-mm-child-chip--missing {
-    background: rgba(255, 80, 80, 0.15);
-    border:     1px dashed rgba(255, 80, 80, 0.45);
-    color:      #ff7b7b;
+    background: rgba(var(--SmartThemeQuoteColor-rgb, 220, 80, 80), 0.15);
+    border:     1px dashed var(--random-danger);
+    color:      var(--random-danger);
 }
 .random-mm-child-chip--missing:hover {
-    background: rgba(255, 80, 80, 0.28);
+    background: rgba(var(--SmartThemeQuoteColor-rgb, 220, 80, 80), 0.28);
 }
 
 /* ── Tree View Styling in Group Modal ─────────────────── */
@@ -1024,7 +1024,7 @@
 .random-gm-tree-guide {
     display:      inline-block;
     width:        12px;
-    border-left:  2px solid rgba(var(--random-accent-rgb, 120, 150, 255), 0.25);
+    border-left:  2px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.25);
     height:       22px;
     margin-right: 2px;
 }
@@ -1231,8 +1231,8 @@
 #random-gm-select-range-btn.random-btn--active {
     color:        var(--random-accent) !important;
     border-color: var(--random-accent) !important;
-    background:   rgba(180, 155, 120, 0.18) !important;
-    box-shadow:   0 0 8px rgba(180, 155, 120, 0.3) !important;
+    background:   rgba(var(--random-accent-rgb, 180, 155, 120), 0.18) !important;
+    box-shadow:   0 0 8px rgba(var(--random-accent-rgb, 180, 155, 120), 0.3) !important;
 }
 
 /* ── Streamlined Macro item ──────────────────────────── */
@@ -1254,20 +1254,20 @@
     user-select:    none;
 }
 .random-gm-macro-item:hover {
-    border-color:   rgba(180, 155, 120, 0.4);
+    border-color:   rgba(var(--random-accent-rgb, 180, 155, 120), 0.4);
 }
 .random-gm-macro-item--selected {
     border-color:   var(--random-accent);
-    background:     rgba(180, 155, 120, 0.08);
+    background:     rgba(var(--random-accent-rgb, 180, 155, 120), 0.08);
 }
 .random-gm-macro-item--anchor {
     outline:        2px dashed var(--random-accent) !important;
     outline-offset: -2px;
-    background:     rgba(180, 155, 120, 0.16) !important;
+    background:     rgba(var(--random-accent-rgb, 180, 155, 120), 0.16) !important;
 }
 .random-gm-macro-item--matched {
     border-color:   var(--random-accent);
-    box-shadow:     0 0 6px rgba(180, 155, 120, 0.25);
+    box-shadow:     0 0 6px rgba(var(--random-accent-rgb, 180, 155, 120), 0.25);
 }
 .random-gm-macro-item--flash {
     animation:      random-highlight-pulse 1.2s ease;
@@ -1317,7 +1317,7 @@
     padding:        0 5px;
     border-radius:  3px;
     border:         1px solid var(--random-border);
-    background:     rgba(0, 0, 0, 0.22);
+    background:     var(--random-tag-bg);
     color:          var(--random-text-muted);
     font-family:    monospace;
     font-size:      0.75em;
@@ -1331,15 +1331,15 @@
     transform:      scale(1.04);
 }
 .random-rel-chip--template {
-    background:     rgba(180, 155, 120, 0.12);
+    background:     rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
     color:          var(--random-accent);
-    border-color:   rgba(180, 155, 120, 0.4);
+    border-color:   rgba(var(--random-accent-rgb, 180, 155, 120), 0.4);
 }
 .random-gm-match-badge {
     font-size:      0.73em;
     color:          var(--random-accent);
-    background:     rgba(180, 155, 120, 0.12);
-    border:         1px solid rgba(180, 155, 120, 0.3);
+    background:     rgba(var(--random-accent-rgb, 180, 155, 120), 0.12);
+    border:         1px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.3);
     padding:        1px 5px;
     border-radius:  3px;
     max-width:      200px;
@@ -1362,29 +1362,29 @@
     flex-shrink:    0;
 }
 .random-health-chip--error {
-    background:     rgba(255, 75, 75, 0.18);
-    color:          #ff6b6b;
-    border:         1px solid rgba(255, 75, 75, 0.45);
+    background:     rgba(var(--SmartThemeQuoteColor-rgb, 220, 80, 80), 0.18);
+    color:          var(--random-danger);
+    border:         1px solid var(--random-danger);
 }
 .random-health-chip--warn {
-    background:     rgba(255, 175, 50, 0.15);
-    color:          #ffb84d;
-    border:         1px solid rgba(255, 175, 50, 0.4);
+    background:     rgba(var(--random-accent-rgb, 180, 155, 120), 0.15);
+    color:          var(--random-accent);
+    border:         1px solid rgba(var(--random-accent-rgb, 180, 155, 120), 0.4);
 }
 .random-health-chip--info {
-    background:     rgba(130, 150, 170, 0.15);
-    color:          #9eb3c7;
-    border:         1px dashed rgba(130, 150, 170, 0.35);
+    background:     rgba(var(--SmartThemeBorderColor-rgb, 130, 150, 170), 0.15);
+    color:          var(--random-text-muted);
+    border:         1px dashed rgba(var(--SmartThemeBorderColor-rgb, 130, 150, 170), 0.35);
 }
 .random-health-chip--fix {
-    background:     rgba(75, 185, 110, 0.18);
-    color:          #5ce085;
-    border:         1px solid rgba(75, 185, 110, 0.4);
+    background:     rgba(var(--SmartThemeQuoteColor-rgb, 90, 160, 100), 0.18);
+    color:          var(--random-success);
+    border:         1px solid var(--random-success);
     cursor:         pointer;
     transition:     transform 0.15s, background 0.15s;
 }
 .random-health-chip--fix:hover {
-    background:     rgba(75, 185, 110, 0.3);
+    background:     rgba(var(--SmartThemeQuoteColor-rgb, 90, 160, 100), 0.3);
     transform:      scale(1.04);
 }
 
@@ -1395,17 +1395,17 @@
     align-items:     center;
     justify-content: space-between;
     padding:         4px 8px;
-    background:      rgba(255, 75, 75, 0.1);
-    border:          1px solid rgba(255, 75, 75, 0.35);
+    background:      rgba(var(--SmartThemeQuoteColor-rgb, 220, 80, 80), 0.1);
+    border:          1px solid var(--random-danger);
     border-radius:   var(--random-radius-sm);
     margin-bottom:   6px;
     font-size:       0.78em;
-    color:           #ff7b7b;
+    color:           var(--random-danger);
 }
 .random-gm-health-bar--ok {
-    background:      rgba(75, 185, 110, 0.08);
-    border-color:    rgba(75, 185, 110, 0.3);
-    color:           #6fe696;
+    background:      rgba(var(--SmartThemeQuoteColor-rgb, 90, 160, 100), 0.08);
+    border-color:    var(--random-success);
+    color:           var(--random-success);
 }
 
 .random-gm-macro-actions {

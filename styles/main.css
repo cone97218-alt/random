@@ -6,20 +6,22 @@
 
 /* ── Base CSS Variables (Follow theme defaults) ────── */
 :root {
-    --random-bg:           rgba(30, 30, 30, 1);
-    --random-bg-panel:     rgba(22, 22, 22, 1);
-    --random-text:         rgba(220, 215, 205, 1);
-    --random-text-muted:   rgba(150, 140, 125, 1);
-    --random-border:       rgba(70, 65, 55, 1);
-    --random-accent:       rgba(180, 155, 120, 1);
-    --random-accent-hover: rgba(200, 175, 140, 1);
-    --random-danger:       rgba(195, 80, 70, 1);
-    --random-success:      rgba(90, 160, 100, 1);
-    --random-tag-bg:       rgba(55, 50, 42, 1);
-    --random-input-bg:     rgba(25, 25, 25, 1);
-    --random-radius:       8px;
-    --random-radius-sm:    4px;
-    --random-shadow:       0 8px 32px rgba(0,0,0,0.5);
+    --random-bg:           var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor, rgba(30, 30, 30, 1)));
+    --random-bg-panel:     var(--SmartThemeChatTintColor, var(--SmartThemeBodyColor, rgba(22, 22, 22, 1)));
+    --random-text:         var(--SmartThemeEmColor, var(--text-color, rgba(220, 215, 205, 1)));
+    --random-text-muted:   var(--SmartThemeUnderlineColor, var(--text-muted, rgba(150, 140, 125, 1)));
+    --random-border:       var(--SmartThemeBorderColor, rgba(120, 120, 120, 0.35));
+    --random-accent:       var(--SmartThemeQuoteColor, var(--SmartThemeEmColor, rgba(180, 155, 120, 1)));
+    --random-accent-hover: var(--SmartThemeUnderlineColor, var(--SmartThemeQuoteColor, rgba(200, 175, 140, 1)));
+    --random-danger:       var(--SmartThemeQuoteColor, rgba(195, 80, 70, 1));
+    --random-quote-color:  var(--SmartThemeQuoteColor, rgba(180, 155, 120, 1));
+    --random-success:      var(--SmartThemeQuoteColor, rgba(90, 160, 100, 1));
+    --random-tag-bg:       rgba(var(--SmartThemeBorderColor-rgb, 120, 120, 120), 0.2);
+    --random-input-bg:     var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor, rgba(25, 25, 25, 1)));
+    --random-accent-rgb:   var(--SmartThemeQuoteColor-rgb, 180, 155, 120);
+    --random-radius:       var(--border-radius, 8px);
+    --random-radius-sm:    calc(var(--border-radius, 8px) / 2);
+    --random-shadow:       var(--shadow, 0 8px 32px rgba(0,0,0,0.5));
     --random-transition:   0.22s ease;
 }
 
