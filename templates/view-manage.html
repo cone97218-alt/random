@@ -6,6 +6,13 @@
         <button class="random-btn random-btn--primary" id="random-add-group-btn" title="新建宏配置组">
             <i class="fa-solid fa-plus"></i>
         </button>
+        <button class="random-btn random-btn--secondary" id="random-import-groups-btn" title="导入宏组配置文件 (.json)">
+            <i class="fa-solid fa-file-import"></i>
+        </button>
+        <button class="random-btn random-btn--secondary" id="random-export-groups-btn" title="导出全部宏配置组备份 (.json)">
+            <i class="fa-solid fa-file-export"></i>
+        </button>
+        <input type="file" id="random-import-file-input" accept=".json,application/json" style="display:none;" />
         <div class="random-toolbar-spacer"></div>
         <button class="random-btn random-btn--secondary" id="random-renumber-order-btn" title="重新整理并规范化注入排序序号 (0, 10, 20...)">
             <i class="fa-solid fa-arrow-down-short-wide"></i>
@@ -209,6 +216,11 @@
 
         </div>
         <div class="random-modal-footer">
+            <button class="random-btn random-btn--secondary" id="random-gm-export-btn" title="导出此宏组及其关联宏配置为 JSON 文件">
+                <i class="fa-solid fa-file-export"></i>
+                <span>导出此组</span>
+            </button>
+            <div style="flex:1;"></div>
             <button class="random-btn random-btn--ghost" id="random-group-modal-cancel">
                 <i class="fa-solid fa-ban"></i>
                 <span>取消</span>

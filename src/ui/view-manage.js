@@ -690,6 +690,33 @@ function _bindToolbar(container) {
         openGroupModal(null);
     });
 
+    // Import button & file picker
+    const fileInput = container.querySelector('#random-import-file-input');
+    container.querySelector('#random-import-groups-btn')?.addEventListener('click', () => {
+        if (fileInput) {
+            fileInput.value = '';
+            fileInput.click();
+        }
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const content = ev.target?.result;
+            if (typeof content === 'string') {
+                importMacroPackage(content);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // Export all button
+    container.querySelector('#random-export-groups-btn')?.addEventListener('click', () => {
+        exportAllGroups();
+    });
+
     container.querySelector('#random-renumber-order-btn')?.addEventListener('click', () => {
         const allGroups = getAllGroups();
         if (allGroups.length === 0) {
@@ -1362,10 +1389,198 @@ function _bindGroupModal(container) {
         showToast(addedCount > 0 ? `已递归补齐 ${addedCount} 个层级宏` : '所有模板及嵌套宏已在列表中', 'success');
     });
     
+    // Export group button
+    modal.querySelector('#random-gm-export-btn')?.addEventListener('click', () => {
+        if (!_editingGroupId) {
+            const name = modal.querySelector('#random-gm-name')?.value.trim() || '新建宏组';
+            const template = modal.querySelector('#random-gm-template')?.value || '';
+            const category = modal.querySelector('#random-gm-category')?.value.trim() || '';
+            const tempGroup = {
+                id: generateId(),
+                name,
+                category,
+                scope: modal.querySelector('#random-gm-scope')?.value || 'global',
+                enabled: modal.querySelector('#random-gm-enabled')?.checked ?? true,
+                injectionRole: Number(modal.querySelector('#random-gm-role')?.value || 0),
+                injectionDepth: Number(modal.querySelector('#random-gm-depth')?.value || 4),
+                injectionOrder: Number(modal.querySelector('#random-gm-order')?.value || 0),
+                template,
+                macros: _groupMacros.map(m => m.id),
+                lifecycle: { useGlobal: true },
+            };
+            const pkg = {
+                format: 'st-random-macros',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                type: 'single-group',
+                groups: [tempGroup],
+                macros: _groupMacros,
+            };
+            const safeName = name.replace(/[\\/:*?"<>|]/g, '_');
+            _downloadJson(pkg, `${safeName}-宏组.json`);
+            showToast(`已导出宏组「${name}」配置`, 'success');
+            return;
+        }
+        exportGroup(_editingGroupId);
+    });
+
     // Save group
     modal.querySelector('#random-group-modal-save')?.addEventListener('click', () => {
         _saveGroupFromModal(modal);
     });
+}
+
+// ── Import & Export Functions ──────────────────────────────────────────────────
+
+function _downloadJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+export function exportGroup(groupId) {
+    const group = getGroupById(groupId);
+    if (!group) {
+        showToast('找不到指定的宏组', 'error');
+        return;
+    }
+    const macroIds = group.macros || [];
+    const macros = macroIds.map(id => getMacroById(id)).filter(Boolean);
+    const pkg = {
+        format: 'st-random-macros',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        type: 'single-group',
+        groups: [group],
+        macros: macros,
+    };
+    const safeName = (group.name || 'macro-group').replace(/[\\/:*?"<>|]/g, '_');
+    _downloadJson(pkg, `${safeName}-宏组.json`);
+    showToast(`已导出宏组「${group.name}」及 ${macros.length} 个关联宏`, 'success');
+}
+
+export function exportAllGroups() {
+    const groups = getAllGroups();
+    if (groups.length === 0) {
+        showToast('当前没有可导出的宏组', 'info');
+        return;
+    }
+    const macros = getAllMacros();
+    const pkg = {
+        format: 'st-random-macros',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        type: 'all-groups',
+        groups: groups,
+        macros: macros,
+    };
+    _downloadJson(pkg, `st-random-宏配置组全部备份-${new Date().toISOString().slice(0, 10)}.json`);
+    showToast(`已导出全部 ${groups.length} 个宏组及 ${macros.length} 个宏定义`, 'success');
+}
+
+export function importMacroPackage(jsonText) {
+    let parsed;
+    try {
+        parsed = JSON.parse(jsonText);
+    } catch (err) {
+        showToast(`JSON 解析失败: ${err.message}`, 'error');
+        return;
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+        showToast('无效的导入文件格式', 'error');
+        return;
+    }
+
+    let groupsToImport = [];
+    let macrosToImport = [];
+
+    if (parsed.format === 'st-random-macros' && Array.isArray(parsed.groups)) {
+        groupsToImport = parsed.groups;
+        macrosToImport = Array.isArray(parsed.macros) ? parsed.macros : [];
+    } else if (Array.isArray(parsed)) {
+        groupsToImport = parsed;
+    } else if (parsed.macros && Array.isArray(parsed.macros) && (parsed.groupName || parsed.template || parsed.name)) {
+        if (parsed.id) {
+            groupsToImport = [parsed];
+        } else {
+            const newId = generateId();
+            groupsToImport = [{
+                id: newId,
+                name: parsed.groupName || parsed.name || '导入宏组',
+                category: parsed.category || '',
+                scope: parsed.scope || 'global',
+                enabled: parsed.enabled ?? true,
+                injectionRole: Number(parsed.injectionRole ?? 0),
+                injectionDepth: Number(parsed.injectionDepth ?? 4),
+                injectionOrder: Number(parsed.injectionOrder ?? 0),
+                template: parsed.template || '',
+                macros: parsed.macros.map(m => (typeof m === 'string' ? m : m.id)),
+                lifecycle: parsed.lifecycle || { useGlobal: true },
+            }];
+            macrosToImport = parsed.macros.filter(m => typeof m === 'object' && m.id);
+        }
+    } else if (parsed.id && (parsed.template !== undefined || parsed.name)) {
+        groupsToImport = [parsed];
+        if (Array.isArray(parsed.macrosDetails)) {
+            macrosToImport = parsed.macrosDetails;
+        }
+    } else {
+        showToast('未识别到有效的宏组数据', 'error');
+        return;
+    }
+
+    if (groupsToImport.length === 0 && macrosToImport.length === 0) {
+        showToast('文件中未包含任何宏组或宏定义', 'warning');
+        return;
+    }
+
+    let importedMacrosCount = 0;
+    macrosToImport.forEach(m => {
+        if (m && m.id) {
+            saveMacro({
+                id: m.id,
+                triggerProbability: Number(m.triggerProbability ?? 100),
+                options: Array.isArray(m.options) ? m.options.map(o => ({
+                    text: typeof o === 'string' ? o : (o.text || ''),
+                    weight: Number(o.weight) || 1,
+                    tag: o.tag || '',
+                })) : [],
+            });
+            importedMacrosCount++;
+        }
+    });
+
+    const existingGroups = getAllGroups();
+    const existingIds = new Set(existingGroups.map(g => g.id));
+    let importedGroupsCount = 0;
+
+    groupsToImport.forEach(g => {
+        if (!g || typeof g !== 'object') return;
+        let targetGroup = { ...g };
+        if (existingIds.has(targetGroup.id)) {
+            targetGroup.id = generateId();
+            targetGroup.name = `${targetGroup.name || '宏组'} (导入)`;
+        }
+        if (!targetGroup.name) targetGroup.name = '导入宏组';
+        if (!targetGroup.id) targetGroup.id = generateId();
+        if (!Array.isArray(targetGroup.macros)) targetGroup.macros = [];
+        if (targetGroup.enabled === undefined) targetGroup.enabled = true;
+        if (!targetGroup.lifecycle) targetGroup.lifecycle = { useGlobal: true };
+
+        saveGroup(targetGroup);
+        existingIds.add(targetGroup.id);
+        importedGroupsCount++;
+    });
+
+    refreshGroupList();
+    showToast(`🎉 成功导入 ${importedGroupsCount} 个宏配置组与 ${importedMacrosCount} 个宏定义！`, 'success');
 }
 
 function _getCurrentlyVisibleMacroIds(modal) {
