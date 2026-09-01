@@ -83,11 +83,9 @@ function _updatePromptModeUI(container, mode) {
     const isPreset = mode === 'preset';
     const compHint = container.querySelector('#random-prompt-components-hint');
     const presetHint = container.querySelector('#random-prompt-preset-hint');
-    const compContainer = container.querySelector('#random-prompt-components-container');
 
     if (compHint) compHint.style.display = isPreset ? 'none' : '';
     if (presetHint) presetHint.style.display = isPreset ? '' : 'none';
-    if (compContainer) compContainer.style.opacity = isPreset ? '0.45' : '1';
 }
 
 // ── Bind events ───────────────────────────────────────────────────────────────

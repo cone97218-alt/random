@@ -227,17 +227,69 @@ function _readMainChatHistory(x, regexStr, regexReplace = '') {
 // ── Main builder ──────────────────────────────────────────────────────────────
 
 async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefText, options) {
+    const s = getSettings();
+    const components = (s.aiPromptComponents || DEFAULT_PROMPT_COMPONENTS)
+        .filter(c => c.enabled !== false)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    // Assemble prompt components, rules and user input into the user message payload
+    const parts = [];
+    let userInputAdded = false;
+
+    for (const comp of components) {
+        // Skip components that SillyTavern's preset already manages natively
+        if (['world_info_before', 'world_info_after', 'world_info_depth', 'persona', 'char_desc', 'char_personality', 'scenario', 'chat_history'].includes(comp.builtinKey)) {
+            continue;
+        }
+
+        if (comp.builtinKey === 'user_input') {
+            if (injectedRefText) parts.push(injectedRefText);
+            if (userPrompt && userPrompt.trim()) parts.push(userPrompt.trim());
+            userInputAdded = true;
+            continue;
+        }
+
+        const content = substituteParams(comp.content || '');
+        if (content && content.trim()) {
+            parts.push(content.trim());
+        }
+    }
+
+    if (!userInputAdded) {
+        if (injectedRefText) parts.push(injectedRefText);
+        if (userPrompt && userPrompt.trim()) parts.push(userPrompt.trim());
+    }
+
+    const currentUserInput = parts.join('\n\n');
+
     const messages = [];
+    const ctx = getContext();
+    const cardFields = typeof getCharacterCardFields === 'function' ? getCharacterCardFields() : {};
 
     try {
-        const ctx = getContext();
         const char = (characters && this_chid !== undefined && characters[this_chid]) ? characters[this_chid] : {};
         const charData = char.data || {};
         const rawChat = ctx.chat || [];
 
+        // Build the chatPool that will be positioned by SillyTavern's active preset
+        let chatPool = typeof setOpenAIMessages === 'function' ? setOpenAIMessages(rawChat) : [];
+
+        // Append multi-turn extension chat history turns (if any from previous turns in this modal session)
+        if (Array.isArray(extChatHistory) && extChatHistory.length > 0) {
+            extChatHistory.forEach(turn => {
+                if (turn.prompt) chatPool.push({ role: 'user', content: turn.prompt, name: name1 });
+                const aiReply = turn.swipes?.[turn.activeIndex];
+                if (aiReply) chatPool.push({ role: 'assistant', content: aiReply, name: name2 || 'Assistant' });
+            });
+        }
+
+        // Append the current assembled user input message
+        if (currentUserInput && currentUserInput.trim()) {
+            chatPool.push({ role: 'user', content: currentUserInput.trim(), name: name1 });
+        }
+
         // Pre-evaluate World Info for before/after
         const wiData = await _evaluateWorldInfo(userPrompt);
-        const cardFields = typeof getCharacterCardFields === 'function' ? getCharacterCardFields() : {};
 
         const [presetChat] = await prepareOpenAIMessages({
             name2: name2 || char.name || 'Assistant',
@@ -254,7 +306,7 @@ async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefT
             cyclePrompt: '',
             systemPromptOverride: char.system_prompt || charData.system_prompt || '',
             jailbreakPromptOverride: char.post_history_instructions || charData.post_history_instructions || '',
-            messages: typeof setOpenAIMessages === 'function' ? setOpenAIMessages(rawChat) : [],
+            messages: chatPool,
             messageExamples: typeof setOpenAIMessageExamples === 'function'
                 ? setOpenAIMessageExamples(charData.mes_example ? [charData.mes_example] : (char.mes_example ? [char.mes_example] : []))
                 : [],
@@ -280,39 +332,10 @@ async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefT
 
     // Fallback if preset produced 0 messages (e.g. no active chat / character)
     if (messages.length === 0) {
-        const cardFields = typeof getCharacterCardFields === 'function' ? getCharacterCardFields() : {};
         if (cardFields.description) messages.push({ role: 'system', content: `[Character Description]\n${cardFields.description}` });
         if (cardFields.personality) messages.push({ role: 'system', content: `[Character Personality]\n${cardFields.personality}` });
         if (cardFields.scenario) messages.push({ role: 'system', content: `[Scenario]\n${cardFields.scenario}` });
-    }
-
-    // Append macro system task specification & injected macro group context
-    const taskSpec = [
-        '【随机宏引擎生成任务】',
-        '你是一个SillyTavern随机宏引擎专家助手。请根据上述上下文设定与用户指令生成随机宏或宏配置组：',
-        '- 宏标识 id 统一使用直观中文（如 `天气`、`角色动作`），引用格式固定为 `{{random_宏名}}`。',
-        '- 宏配置组完整设计：直接输出标准 JSON（含 isFullGroup: true, groupName: "组名", template: "提示词模板", injectionRole: 0, injectionDepth: 4, macros: [ { id, triggerProbability, options: [ { text, weight } ] } ]）。',
-        '- 单宏候选项生成：每行输出一个文本候选项。',
-    ];
-
-    if (injectedRefText) {
-        taskSpec.push('\n' + injectedRefText);
-    }
-
-    messages.push({ role: 'system', content: taskSpec.join('\n') });
-
-    // Multi-turn extension chat history
-    if (Array.isArray(extChatHistory) && extChatHistory.length > 0) {
-        extChatHistory.forEach(turn => {
-            if (turn.prompt) messages.push({ role: 'user', content: turn.prompt });
-            const aiReply = turn.swipes?.[turn.activeIndex];
-            if (aiReply) messages.push({ role: 'assistant', content: aiReply });
-        });
-    }
-
-    // Current user prompt
-    if (userPrompt) {
-        messages.push({ role: 'user', content: userPrompt });
+        if (currentUserInput) messages.push({ role: 'user', content: currentUserInput });
     }
 
     return messages;
