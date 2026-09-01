@@ -720,12 +720,37 @@ export function getInspectData() {
     };
 }
 
+let _inspectActiveTab = 'next'; // 'next' | 'last'
+
 function _bindInspectModal(container) {
     const modal = container.querySelector('#random-inspect-modal');
     if (!modal) return;
 
     modal.querySelector('#random-inspect-modal-close')?.addEventListener('click', closeInspectModal);
     modal.querySelector('#random-inspect-modal-confirm')?.addEventListener('click', closeInspectModal);
+
+    const tabNext = modal.querySelector('#random-inspect-tab-next');
+    const tabLast = modal.querySelector('#random-inspect-tab-last');
+    const paneNext = modal.querySelector('#random-inspect-pane-next');
+    const paneLast = modal.querySelector('#random-inspect-pane-last');
+
+    const switchTab = (tab) => {
+        _inspectActiveTab = tab;
+        if (tab === 'next') {
+            tabNext?.classList.add('random-inspect-tab-btn--active');
+            tabLast?.classList.remove('random-inspect-tab-btn--active');
+            if (paneNext) paneNext.style.display = '';
+            if (paneLast) paneLast.style.display = 'none';
+        } else {
+            tabLast?.classList.add('random-inspect-tab-btn--active');
+            tabNext?.classList.remove('random-inspect-tab-btn--active');
+            if (paneLast) paneLast.style.display = '';
+            if (paneNext) paneNext.style.display = 'none';
+        }
+    };
+
+    tabNext?.addEventListener('click', () => switchTab('next'));
+    tabLast?.addEventListener('click', () => switchTab('last'));
 
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeInspectModal();
@@ -2392,7 +2417,7 @@ function _renderOptionList(modal) {
             : '';
 
         row.innerHTML = `
-            <input type="text"   class="random-input random-opt-text"   value="${escapeHtml(opt.text || '')}"  placeholder="选项内容（支持嵌套 {{random_xxx}}）" />
+            <textarea class="random-input random-opt-text" rows="2" placeholder="选项内容（支持换行与嵌套 {{random_xxx}}）">${escapeHtml(opt.text || '')}</textarea>
             ${weightInputHtml}
             ${tagInputHtml}
             <button class="random-icon-btn--xs random-opt-delete random-icon-btn--danger" title="删除">

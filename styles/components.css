@@ -342,8 +342,8 @@
     display:        flex;
     flex-direction: row;
     align-items:    center;
-    gap:            8px;
-    padding:        10px 14px;
+    gap:            6px;
+    padding:        6px 8px;
     border-bottom:  1px solid var(--random-border);
     flex-shrink:    0;
     white-space:    nowrap;
@@ -362,34 +362,34 @@
     flex:       1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding:    10px 14px;
+    padding:    6px 8px;
     display:    flex;
     flex-direction: column;
-    gap:        12px;
+    gap:        8px;
 }
 
 /* ── Category Folder Sections ────────────────────────── */
 .random-category-section {
     display:        flex;
     flex-direction: column;
-    gap:            8px;
+    gap:            6px;
 }
 .random-category-header {
     display:         flex;
     flex-direction:  row;
     align-items:     center;
     justify-content: space-between;
-    padding:         6px 10px;
+    padding:         5px 8px;
     background:      var(--random-bg-panel);
     border:          1px solid var(--random-border);
     border-radius:   var(--random-radius);
     user-select:     none;
-    gap:             8px;
+    gap:             6px;
 }
 .random-category-title-row {
     display:     flex;
     align-items: center;
-    gap:         8px;
+    gap:         6px;
     font-size:   0.88em;
     font-weight: 600;
     color:       var(--random-text);
@@ -415,13 +415,13 @@
 .random-category-actions {
     display:     flex;
     align-items: center;
-    gap:         6px;
+    gap:         4px;
     flex-shrink: 0;
 }
 .random-category-body {
     display:        flex;
     flex-direction: column;
-    gap:            8px;
+    gap:            6px;
     padding-left:   0;
     margin-left:    0;
     border-left:    none;
@@ -434,7 +434,7 @@
     border:        1px solid var(--random-border);
     border-radius: var(--random-radius);
     background:    var(--random-bg-panel);
-    padding:       10px 12px;
+    padding:       8px 10px;
     display:       flex;
     flex-direction: column;
     gap:           6px;
@@ -860,24 +860,38 @@
 .random-option-edit-list {
     display:        flex;
     flex-direction: column;
-    gap:            5px;
+    gap:            6px;
 }
 .random-option-row {
     display:        flex;
     flex-direction: row;
-    align-items:    center;
+    align-items:    flex-start;
     gap:            6px;
-    white-space:    nowrap;
+    padding:        4px 6px;
+    background:     var(--random-input-bg);
+    border:         1px solid var(--random-border);
+    border-radius:  var(--random-radius-sm);
+    box-sizing:     border-box;
 }
 .random-option-row .random-input.random-opt-text {
     flex:           1;
     min-width:      0;
-    white-space:    nowrap;
+    min-height:     42px;
+    height:         46px;
+    resize:         vertical;
+    line-height:    1.4;
+    padding:        6px 8px;
+    font-family:    inherit;
+    font-size:      0.88em;
+    box-sizing:     border-box;
+    white-space:    pre-wrap;
 }
 .random-opt-weight {
-    width:          34px !important;
-    min-width:      34px !important;
-    max-width:      38px !important;
+    width:          38px !important;
+    min-width:      38px !important;
+    max-width:      42px !important;
+    height:         36px !important;
+    margin-top:     3px;
     padding:        3px 1px !important;
     text-align:     center;
     background:     var(--random-input-bg) !important;
@@ -895,9 +909,16 @@
 .random-opt-tag {
     width:          75px !important;
     min-width:      60px !important;
+    height:         36px !important;
+    margin-top:     3px;
     font-size:      0.82em;
     padding:        4px 6px !important;
     flex-shrink:    0;
+}
+.random-option-row .random-opt-delete {
+    flex-shrink:    0;
+    margin-top:     4px;
+    padding:        6px 8px;
 }
 
 /* ── Quick Macro Inserter Bar ────────────────────────── */
@@ -1097,30 +1118,33 @@
         padding: 8px 12px !important;
     }
 
-    /* Wrap option row gracefully on narrow mobile screens */
+    /* Option row on narrow mobile screens */
     .random-option-row {
-        flex-wrap:     wrap !important;
-        gap:           6px !important;
-        background:    rgba(0, 0, 0, 0.18);
-        padding:       6px 8px;
-        border-radius: var(--random-radius-sm);
-        border:        1px solid rgba(255, 255, 255, 0.04);
+        flex-wrap:     nowrap !important;
+        align-items:   flex-start !important;
+        gap:           4px !important;
+        padding:       4px 6px !important;
     }
     .random-option-row .random-input.random-opt-text {
-        flex-basis: 100% !important;
-        width:      100% !important;
-        min-width:  100% !important;
+        flex:          1 !important;
+        min-width:     0 !important;
+        min-height:    40px !important;
+        height:        44px !important;
     }
     .random-opt-weight {
-        width:      48px !important;
-        max-width:  55px !important;
-        height:     30px !important;
-        flex:       0 0 auto !important;
+        width:         36px !important;
+        min-width:     36px !important;
+        height:        32px !important;
+        margin-top:    4px !important;
     }
     .random-opt-tag {
-        flex:       1 !important;
-        min-width:  70px !important;
-        height:     30px !important;
+        width:         65px !important;
+        min-width:     50px !important;
+        height:        32px !important;
+        margin-top:    4px !important;
+    }
+    .random-option-row .random-opt-delete {
+        margin-top:    4px !important;
     }
 }
 
@@ -2171,47 +2195,63 @@
 .random-modal--lg {
     width: min(720px, 94vw);
 }
-.random-inspect-modal-body {
-    gap: 14px;
-    padding: 16px;
-}
-.random-inspect-section {
+.random-inspect-tabs {
     display:        flex;
-    flex-direction: column;
-    gap:            10px;
+    flex-direction: row;
+    align-items:    center;
     background:     var(--random-bg-panel);
-    border:         1px solid var(--random-border);
-    border-radius:  var(--random-radius);
-    padding:        12px 14px;
+    border-bottom:  1px solid var(--random-border);
+    padding:        6px 10px;
+    gap:            8px;
+    flex-shrink:    0;
 }
-.random-inspect-section-header {
-    display:         flex;
-    flex-direction:  row;
+.random-inspect-tab-btn {
+    display:         inline-flex;
     align-items:     center;
-    justify-content: space-between;
-    padding-bottom:  8px;
-    border-bottom:   1px solid rgba(255, 255, 255, 0.07);
+    gap:             6px;
+    padding:         6px 14px;
+    border-radius:   var(--random-radius-sm);
+    border:          1px solid transparent;
+    background:      transparent;
+    color:           var(--random-text-muted);
+    font-size:       0.86em;
+    font-weight:     600;
+    cursor:          pointer;
+    transition:      all var(--random-transition);
 }
-.random-inspect-section-title {
-    display:     flex;
-    align-items: center;
-    gap:         8px;
-    font-weight: 600;
-    font-size:   0.92em;
-    color:       var(--random-text);
+.random-inspect-tab-btn:hover {
+    color:           var(--random-text);
+    background:      rgba(255, 255, 255, 0.05);
 }
-.random-inspect-section-badge {
-    font-size:     0.78em;
-    color:         var(--random-text-muted);
-    background:    rgba(0, 0, 0, 0.25);
-    padding:       2px 8px;
-    border-radius: 12px;
-    border:        1px solid rgba(255, 255, 255, 0.06);
+.random-inspect-tab-btn--active {
+    color:           var(--random-accent) !important;
+    background:      rgba(var(--random-accent-rgb, 180, 155, 120), 0.12) !important;
+    border-color:    rgba(var(--random-accent-rgb, 180, 155, 120), 0.35) !important;
+}
+.random-inspect-tab-badge {
+    font-size:       0.75em;
+    font-weight:     normal;
+    color:           var(--random-text-muted);
+    background:      rgba(0, 0, 0, 0.25);
+    padding:         1px 6px;
+    border-radius:   10px;
+    border:          1px solid rgba(255, 255, 255, 0.06);
+}
+.random-inspect-modal-body {
+    gap:             10px;
+    padding:         12px;
+    overflow-y:      auto;
+    flex:            1;
+}
+.random-inspect-pane {
+    flex:            1;
+    display:         flex;
+    flex-direction:  column;
 }
 .random-inspect-list {
     display:        flex;
     flex-direction: column;
-    gap:            10px;
+    gap:            8px;
 }
 .random-inspect-item {
     background:     var(--random-input-bg);

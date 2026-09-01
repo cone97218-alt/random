@@ -337,36 +337,35 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
+
+        <!-- ── Inspect Tabs ── -->
+        <div class="random-inspect-tabs">
+            <button class="random-inspect-tab-btn random-inspect-tab-btn--active" id="random-inspect-tab-next" type="button" data-tab="next">
+                <i class="fa-solid fa-forward-step"></i>
+                <span>下一轮预演</span>
+                <span class="random-inspect-tab-badge" id="random-inspect-next-badge"></span>
+            </button>
+            <button class="random-inspect-tab-btn" id="random-inspect-tab-last" type="button" data-tab="last">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>上一轮生效</span>
+                <span class="random-inspect-tab-badge" id="random-inspect-last-badge"></span>
+            </button>
+        </div>
+
         <div class="random-modal-body random-inspect-modal-body">
-
-            <!-- ── Section 1: 上一轮实际生效注入 ── -->
-            <div class="random-inspect-section">
-                <div class="random-inspect-section-header">
-                    <div class="random-inspect-section-title">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
-                        <span>上一轮实际生效注入</span>
-                    </div>
-                    <span class="random-inspect-section-badge" id="random-inspect-last-badge"></span>
-                </div>
-                <div class="random-inspect-list" id="random-inspect-last-list">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
-            <!-- ── Section 2: 下一轮即将注入预演 ── -->
-            <div class="random-inspect-section">
-                <div class="random-inspect-section-header">
-                    <div class="random-inspect-section-title">
-                        <i class="fa-solid fa-forward-step"></i>
-                        <span>下一轮即将注入预演</span>
-                    </div>
-                    <span class="random-inspect-section-badge" id="random-inspect-next-badge"></span>
-                </div>
+            <!-- ── Pane 1: 下一轮预演 ── -->
+            <div class="random-inspect-pane" id="random-inspect-pane-next">
                 <div class="random-inspect-list" id="random-inspect-next-list">
                     <!-- Populated by JS -->
                 </div>
             </div>
 
+            <!-- ── Pane 2: 上一轮生效 ── -->
+            <div class="random-inspect-pane" id="random-inspect-pane-last" style="display:none;">
+                <div class="random-inspect-list" id="random-inspect-last-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
         </div>
         <div class="random-modal-footer">
             <button class="random-btn random-btn--secondary" id="random-inspect-modal-confirm">关闭</button>
