@@ -76,7 +76,7 @@ function createDefaultChatState() {
         /**
          * Per-group runtime state.
          * Key: group ID
-         * Value: { currentValues, injectionCounter, roundsSinceLastInjection, pinnedMacros }
+         * Value: { currentValues, roundInCycle, pinnedMacros }
          */
         groups: {},
         /** Total message round count in this chat (incremented on each AI message received) */
@@ -99,15 +99,11 @@ export function getGroupChatState(groupId) {
              */
             currentValues: {},
             /**
-             * How many rounds this injection has been kept (reused) without re-rolling.
-             * Resets to 0 when a new roll happens.
+             * 0-indexed position within the current X-round lifecycle cycle.
+             * 0 = start of cycle (will inject + re-roll).
+             * Advances by 1 each time MESSAGE_RECEIVED fires, wraps at cycleLen.
              */
-            injectionCounter: 0,
-            /**
-             * How many rounds since the last injection event for this group.
-             * Used to implement "inject every X rounds".
-             */
-            roundsSinceLastInjection: 0,
+            roundInCycle: 0,
             /**
              * Set of macro IDs that the user has pinned (will not be re-rolled).
              * @type {string[]}
@@ -115,7 +111,10 @@ export function getGroupChatState(groupId) {
             pinnedMacros: [],
         };
     }
-    return chatState.groups[groupId];
+    // Migrate older state that used injectionCounter / roundsSinceLastInjection
+    const s = chatState.groups[groupId];
+    if (s.roundInCycle === undefined) s.roundInCycle = 0;
+    return s;
 }
 
 /**

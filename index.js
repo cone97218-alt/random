@@ -13,12 +13,13 @@ import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.j
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument, SlashCommandNamedArgument } from '../../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue } from '../../../slash-commands/SlashCommandEnumValue.js';
-import { showPanel } from './src/ui/panel.js';
+import { showPanel, hidePanel } from './src/ui/panel.js';
 import { registerHooks } from './src/core/hooks.js';
 import { injectThemeRgbVariables } from './src/utils/theme.js';
-import { getAllGroups, getGroupChatState, saveChatState, saveGroup, clearChatState } from './src/core/storage.js';
+import { getAllGroups, getActiveGroups, getGroupChatState, saveChatState, saveGroup, clearChatState } from './src/core/storage.js';
 import { resolveGroupTemplate } from './src/core/macro-engine.js';
-import { injectRandomMacros, clearAllInjections } from './src/core/injection.js';
+import { injectRandomMacros, clearAllInjections, forceNextInjection } from './src/core/injection.js';
+import { openInspectModal, closeInspectModal, getInspectData } from './src/ui/view-manage.js';
 import { convertStRandomMacros, importConvertedGroup } from './src/core/st-converter.js';
 import { showToast } from './src/utils/dom.js';
 
@@ -143,7 +144,7 @@ function registerSlashCommands() {
     try {
         if (!SlashCommandParser || !SlashCommand) return;
 
-        const subcommands = ['open', 'roll', 'toggle', 'convert', 'status', 'list', 'test', 'inject', 'clear', 'help'];
+        const subcommands = ['open', 'roll', 'toggle', 'convert', 'status', 'list', 'inspect', 'test', 'inject', 'clear', 'help'];
         const viewEnums = ['manage', 'generate', 'settings'];
 
         // Helper to get dynamic group name enums for autocomplete
@@ -283,6 +284,13 @@ function registerSlashCommands() {
                         }).join('\n');
                         showToast(`成功触发注入！已注入 ${injectedKeys.length} 项到 ST 上下文`, 'success');
                         return `【随机宏注入测试成功】\n${details}`;
+                    }
+                    case 'inspect':
+                    case 'preview': {
+                        showPanel('manage').then(() => {
+                            import('./src/ui/view-manage.js').then(m => m.openInspectModal?.());
+                        });
+                        return '';
                     }
                     case 'status':
                     case 'list': {
@@ -442,8 +450,40 @@ export async function init() {
     const observer = new MutationObserver(handleMutation);
     observer.observe(document.body, { childList: true, subtree: true });
 
+    // Expose global window API for other extensions
+    window.RandomMacro = {
+        // UI Operations
+        openInspect: () => openInspectModal(),
+        closeInspect: () => closeInspectModal(),
+        openPanel: (view = 'manage') => showPanel(view),
+        hidePanel: () => hidePanel(),
+
+        // Data APIs
+        getInspectData: () => getInspectData(),
+        getLastInjections: () => getInspectData().lastInjected,
+        getNextInjections: () => getInspectData().nextUpcoming,
+
+        // Macro Group Actions
+        getAllGroups: () => getAllGroups(),
+        getActiveGroups: () => getActiveGroups(),
+        rerollGroup: (targetName) => executeQuickReroll(targetName),
+        rerollAll: () => executeQuickReroll(null),
+        forceNextInjection: (groupId) => forceNextInjection(groupId),
+    };
+
     console.log('[Random Macro] Extension initialized: QR bar trigger and slash commands ready (no magic wand menu).');
 }
+
+// Export module APIs
+export {
+    openInspectModal,
+    closeInspectModal,
+    getInspectData,
+    showPanel,
+    hidePanel,
+    executeQuickReroll,
+    forceNextInjection,
+};
 
 // Auto-run init if DOM is ready
 if (document.readyState === 'complete' || document.readyState === 'interactive') {

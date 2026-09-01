@@ -7,6 +7,9 @@
             <i class="fa-solid fa-plus"></i>
         </button>
         <div class="random-toolbar-spacer"></div>
+        <button class="random-btn random-btn--secondary" id="random-inspect-btn" title="注入透视">
+            <i class="fa-solid fa-eye"></i>
+        </button>
         <button class="random-btn random-btn--secondary" id="random-reroll-all-btn" title="重新随机所有启用的宏组">
             <i class="fa-solid fa-rotate"></i>
         </button>
@@ -41,13 +44,20 @@
                     <span>基础与注入配置</span>
                 </summary>
                 <div class="random-gm-details-body">
-                    <!-- Group name -->
-                    <div class="random-field">
-                        <label class="random-field-label">组名称</label>
-                        <input type="text" class="random-input" id="random-gm-name" placeholder="例如：天气系统" />
+                    <!-- Group name & Category -->
+                    <div class="random-field-row" style="display:flex; gap:12px;">
+                        <div class="random-field" style="flex:1.2;">
+                            <label class="random-field-label">组名称</label>
+                            <input type="text" class="random-input" id="random-gm-name" placeholder="例如：天气系统" />
+                        </div>
+                        <div class="random-field" style="flex:1;">
+                            <label class="random-field-label">所属分类 / 分组</label>
+                            <input type="text" class="random-input" id="random-gm-category" list="random-gm-category-datalist" placeholder="例如：环境（留空为未分类）" />
+                            <datalist id="random-gm-category-datalist"></datalist>
+                        </div>
                     </div>
 
-                    <!-- Scope & Enabled -->
+                    <!-- Scope, Exclusive Pool & Enabled -->
                     <div class="random-field-row" style="display:flex; gap:12px; align-items:flex-end;">
                         <div class="random-field" style="flex:1;">
                             <label class="random-field-label">作用范围</label>
@@ -55,6 +65,11 @@
                                 <option value="global">全局</option>
                                 <option value="character">当前角色卡</option>
                             </select>
+                        </div>
+                        <div class="random-field" style="flex:1.2;">
+                            <label class="random-field-label">互斥池名称 (可选)</label>
+                            <input type="text" class="random-input" id="random-gm-pool" list="random-gm-pool-datalist" placeholder="例如：突发事件池（同池每轮只抽1个）" />
+                            <datalist id="random-gm-pool-datalist"></datalist>
                         </div>
                         <div class="random-field random-field--inline" style="padding-bottom:6px;">
                             <label class="random-field-label">启用</label>
@@ -132,6 +147,9 @@
                 <div class="random-field-label-row">
                     <label class="random-field-label">宏列表</label>
                     <div class="random-field-actions">
+                        <button class="random-btn random-btn--sm" id="random-gm-view-mode-btn" title="切换：树状层级视图 / 平铺列表">
+                            <i class="fa-solid fa-sitemap"></i>
+                        </button>
                         <button class="random-btn random-btn--sm" id="random-gm-batch-toggle-btn" title="批量多选与删除">
                             <i class="fa-solid fa-list-check"></i>
                         </button>
@@ -204,10 +222,22 @@
 <div class="random-modal-overlay" id="random-macro-modal" style="display:none;">
     <div class="random-modal">
         <div class="random-modal-header">
-            <span id="random-macro-modal-title">编辑宏</span>
-            <button class="random-icon-btn" id="random-macro-modal-close">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div class="random-mm-header-left">
+                <button class="random-icon-btn--xs" id="random-mm-back-btn" style="display:none;" title="返回上一级宏">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="random-mm-breadcrumb" id="random-mm-breadcrumb">
+                    <span id="random-macro-modal-title">编辑宏</span>
+                </div>
+            </div>
+            <div class="random-mm-header-right">
+                <button class="random-icon-btn" id="random-mm-fullscreen-btn" title="全屏 / 还原 (手机端置顶60%留出键盘空间)">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+                <button class="random-icon-btn" id="random-macro-modal-close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
         </div>
         <div class="random-modal-body">
 
@@ -234,6 +264,14 @@
                 <div class="random-field-label-row">
                     <label class="random-field-label">选项列表</label>
                     <div class="random-field-label-actions">
+                        <button class="random-btn random-btn--sm random-btn--ghost" id="random-mm-quick-insert-btn" type="button" title="快速插入已有宏">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>插入宏</span>
+                        </button>
+                        <button class="random-btn random-btn--sm random-btn--ghost" id="random-mm-toggle-multiline-btn" type="button" title="切换：单行列表 / 多行批量文本输入">
+                            <i class="fa-solid fa-align-left"></i>
+                            <span id="random-mm-toggle-multiline-text">批量文本</span>
+                        </button>
                         <button class="random-btn random-btn--sm random-btn--ghost" id="random-mm-toggle-tag-btn" type="button" title="显示或隐藏标签列">
                             <i class="fa-solid fa-tags"></i>
                             <span id="random-mm-toggle-tag-text">标签</span>
@@ -244,8 +282,31 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Quick Insert Bar -->
+                <div class="random-mm-insert-bar" id="random-mm-insert-bar" style="display:none;">
+                    <div class="random-mm-insert-title"><i class="fa-solid fa-hand-pointer"></i> 点击插入宏名：</div>
+                    <div class="random-mm-insert-chips" id="random-mm-insert-chips"></div>
+                </div>
+
+                <!-- Multi-line Batch Mode Container -->
+                <div class="random-mm-multiline-wrap" id="random-mm-multiline-wrap" style="display:none;">
+                    <textarea class="random-textarea random-mm-multiline-text" id="random-mm-multiline-text" rows="7" placeholder="每行一个选项，例如：&#10;暴雨倾盆 2&#10;大晴天&#10;包含嵌套宏：今天下{{random_天气}} 1"></textarea>
+                    <div class="random-field-hint">每行一个选项，行尾空格+数字可指定权重（如：<code>选项内容 2</code>）。切换模式自动同步。</div>
+                </div>
+
+                <!-- Normal Row Options Container -->
                 <div class="random-option-list" id="random-mm-option-list">
                     <!-- Options rendered here -->
+                </div>
+
+                <!-- Referenced Child Macros Drill-Down Section -->
+                <div class="random-mm-child-section" id="random-mm-child-section" style="display:none;">
+                    <div class="random-mm-child-header">
+                        <i class="fa-solid fa-sitemap"></i>
+                        <span>当前选项引用的子宏 (点击直接跳转编辑/一键补全)：</span>
+                    </div>
+                    <div class="random-mm-child-chips" id="random-mm-child-chips"></div>
                 </div>
             </div>
 
@@ -262,3 +323,50 @@
         </div>
     </div>
 </div>
+
+<!-- ── Injection Inspector Modal ── -->
+<div class="random-modal-overlay" id="random-inspect-modal" style="display:none;">
+    <div class="random-modal random-modal--lg">
+        <div class="random-modal-header">
+            <span id="random-inspect-modal-title"><i class="fa-solid fa-eye"></i> 注入透视</span>
+            <button class="random-icon-btn" id="random-inspect-modal-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="random-modal-body random-inspect-modal-body">
+
+            <!-- ── Section 1: 上一轮实际生效注入 ── -->
+            <div class="random-inspect-section">
+                <div class="random-inspect-section-header">
+                    <div class="random-inspect-section-title">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>上一轮实际生效注入</span>
+                    </div>
+                    <span class="random-inspect-section-badge" id="random-inspect-last-badge"></span>
+                </div>
+                <div class="random-inspect-list" id="random-inspect-last-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- ── Section 2: 下一轮即将注入预演 ── -->
+            <div class="random-inspect-section">
+                <div class="random-inspect-section-header">
+                    <div class="random-inspect-section-title">
+                        <i class="fa-solid fa-forward-step"></i>
+                        <span>下一轮即将注入预演</span>
+                    </div>
+                    <span class="random-inspect-section-badge" id="random-inspect-next-badge"></span>
+                </div>
+                <div class="random-inspect-list" id="random-inspect-next-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+        </div>
+        <div class="random-modal-footer">
+            <button class="random-btn random-btn--secondary" id="random-inspect-modal-confirm">关闭</button>
+        </div>
+    </div>
+</div>
+

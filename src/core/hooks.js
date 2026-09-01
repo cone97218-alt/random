@@ -11,6 +11,24 @@
 import { injectRandomMacros, onRoundComplete, clearAllInjections } from './injection.js';
 
 let _hooksBound = false;
+let _generationActive = false;
+let _completeTimer = null;
+
+/**
+ * Trigger round completion exactly once per generation cycle.
+ */
+function handleRoundCompletion() {
+    if (!_generationActive) return;
+    _generationActive = false;
+    clearTimeout(_completeTimer);
+    try {
+        console.log('[Random Hooks] Generation complete: advancing lifecycle rounds...');
+        onRoundComplete();
+        import('../ui/view-manage.js').then(m => m.refreshGroupList?.()).catch(() => {});
+    } catch (e) {
+        console.error('[Random Hooks] Error in round completion:', e);
+    }
+}
 
 /**
  * Register all SillyTavern event hooks.
@@ -21,16 +39,20 @@ export function registerHooks(eventSource, event_types) {
     if (_hooksBound || !eventSource || !event_types) return;
     _hooksBound = true;
     
-    // 1. Primary injection hook: Fires on ALL APIs (OpenAI, Claude, TextGen, Kobold, etc.) before context combination
+    // 1. Primary injection hook: Fires on ALL APIs before context combination
+    const handleStart = () => {
+        try {
+            console.log('[Random Hooks] GENERATION_STARTED triggered: injecting random macros...');
+            _generationActive = true;
+            injectRandomMacros();
+            import('../ui/view-manage.js').then(m => m.refreshGroupList?.()).catch(() => {});
+        } catch (e) {
+            console.error('[Random Hooks] Error in GENERATION_STARTED:', e);
+        }
+    };
+
     if (event_types.GENERATION_STARTED) {
-        eventSource.on(event_types.GENERATION_STARTED, () => {
-            try {
-                console.log('[Random Hooks] GENERATION_STARTED triggered: injecting random macros...');
-                injectRandomMacros();
-            } catch (e) {
-                console.error('[Random Hooks] Error in GENERATION_STARTED:', e);
-            }
-        });
+        eventSource.on(event_types.GENERATION_STARTED, handleStart);
     }
     
     // 2. Backup hook for text-completion backends
@@ -44,22 +66,32 @@ export function registerHooks(eventSource, event_types) {
         });
     }
     
-    // 3. Track rounds when message arrives
+    // 3. Generation completion hooks (covers streaming, non-streaming, swipes, commands)
+    const onCompleteEvent = () => {
+        if (!_generationActive) return;
+        // Debounce slightly in case multiple completion events fire in the same frame
+        clearTimeout(_completeTimer);
+        _completeTimer = setTimeout(handleRoundCompletion, 20);
+    };
+
+    if (event_types.GENERATION_ENDED) {
+        eventSource.on(event_types.GENERATION_ENDED, onCompleteEvent);
+    }
     if (event_types.MESSAGE_RECEIVED) {
-        eventSource.on(event_types.MESSAGE_RECEIVED, () => {
-            try {
-                onRoundComplete();
-            } catch (e) {
-                console.error('[Random Hooks] Error in MESSAGE_RECEIVED:', e);
-            }
-        });
+        eventSource.on(event_types.MESSAGE_RECEIVED, onCompleteEvent);
+    }
+    if (event_types.CHARACTER_MESSAGE_RENDERED) {
+        eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, onCompleteEvent);
     }
 
     // 4. Chat changed: clear / re-sync injections
     if (event_types.CHAT_CHANGED) {
         eventSource.on(event_types.CHAT_CHANGED, () => {
             try {
+                _generationActive = false;
+                clearTimeout(_completeTimer);
                 clearAllInjections();
+                import('../ui/view-manage.js').then(m => m.refreshGroupList?.()).catch(() => {});
             } catch (e) {
                 console.error('[Random Hooks] Error on CHAT_CHANGED:', e);
             }
