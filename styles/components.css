@@ -553,6 +553,18 @@
     color:          var(--random-text-muted);
     flex-wrap:      wrap;
 }
+.random-gc-order-badge {
+    cursor:         pointer;
+    transition:     all var(--random-transition);
+    padding:        1px 5px;
+    border-radius:  var(--random-radius-sm);
+    border:         1px dashed transparent;
+}
+.random-gc-order-badge:hover {
+    color:          var(--random-accent);
+    background:     var(--random-tag-bg);
+    border-color:   var(--random-border);
+}
 .random-status-badge {
     display:        inline-flex;
     align-items:    center;

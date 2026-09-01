@@ -80,7 +80,9 @@ export function refreshGroupList() {
     const bodyEl = _container.closest('.random-body') || _container.parentElement;
     const bodyScrollTop = bodyEl ? bodyEl.scrollTop : 0;
     
-    const groups = getAllGroups();
+    const allRawGroups = getAllGroups();
+    // Sort all groups by injectionOrder ascending (lower numbers injected first)
+    const groups = [...allRawGroups].sort((a, b) => (Number(a.injectionOrder) || 0) - (Number(b.injectionOrder) || 0));
     
     // Remove old category sections & cards (keep empty hint)
     listEl.querySelectorAll('.random-category-section, .random-group-card').forEach(el => el.remove());
@@ -120,7 +122,9 @@ export function refreshGroupList() {
     });
 
     sortedCategories.forEach(catName => {
-        const catGroups = categoryMap.get(catName);
+        const catGroups = categoryMap.get(catName) || [];
+        // Ensure groups inside category are also sorted by injectionOrder
+        catGroups.sort((a, b) => (Number(a.injectionOrder) || 0) - (Number(b.injectionOrder) || 0));
         const isCatCollapsed = _collapsedCategoryNames.has(catName);
         const allEnabled = catGroups.every(g => g.enabled);
 
@@ -269,6 +273,12 @@ function _buildGroupCard(group) {
                 <span class="random-group-card-scope">${group.scope === 'global' ? '全局' : '角色卡'}</span>
             </div>
             <div class="random-group-card-actions">
+                <button class="random-icon-btn random-gc-move-up" title="按注入顺序上移 (当前序号: ${group.injectionOrder ?? 0})">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+                <button class="random-icon-btn random-gc-move-down" title="按注入顺序下移 (当前序号: ${group.injectionOrder ?? 0})">
+                    <i class="fa-solid fa-arrow-down"></i>
+                </button>
                 <button class="random-icon-btn random-gc-scan" title="重新扫描模板宏并自动绑定">
                     <i class="fa-solid fa-satellite-dish"></i>
                 </button>
@@ -291,7 +301,7 @@ function _buildGroupCard(group) {
             </div>
             <div class="random-group-card-meta">
                 <span><i class="fa-solid fa-arrow-down-1-9"></i> 深度 ${group.injectionDepth ?? 4}</span>
-                <span><i class="fa-solid fa-arrow-down-short-wide"></i> 顺序 ${group.injectionOrder ?? 0}</span>
+                <span class="random-gc-order-badge" style="cursor:pointer;" title="点击直接修改注入排序序号"><i class="fa-solid fa-arrow-down-short-wide"></i> 顺序 ${group.injectionOrder ?? 0}</span>
                 <span><i class="fa-solid fa-user-tag"></i> ${_roleLabel(group.injectionRole)}</span>
                 ${_lifecycleMeta(group)}
             </div>
@@ -317,6 +327,29 @@ function _buildGroupCard(group) {
             if (iconEl) iconEl.className = 'fa-solid fa-chevron-right';
             if (btnEl)  btnEl.title = '展开宏组';
             card.classList.add('random-group-card--collapsed');
+        }
+    });
+
+    // Move Up / Move Down buttons
+    card.querySelector('.random-gc-move-up')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _moveGroupOrder(group.id, 'up');
+    });
+
+    card.querySelector('.random-gc-move-down')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _moveGroupOrder(group.id, 'down');
+    });
+
+    // Quick direct edit order badge
+    card.querySelector('.random-gc-order-badge')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newOrderStr = prompt(`设置宏组「${group.name}」的注入排序序号（数字越小越先注入）：`, group.injectionOrder ?? 0);
+        if (newOrderStr !== null && !isNaN(Number(newOrderStr))) {
+            group.injectionOrder = Number(newOrderStr);
+            saveGroup(group);
+            refreshGroupList();
+            showToast(`已将「${group.name}」排序序号更新为 ${group.injectionOrder}`, 'success');
         }
     });
     
@@ -591,11 +624,102 @@ function _lifecycleMeta(group) {
     return `${statusBadge}${lifecycleText}`;
 }
 
+// ── Group Reordering ─────────────────────────────────────────────────────────
+
+function _moveGroupOrder(groupId, direction) {
+    const allGroups = getAllGroups();
+    const settings = getSettings();
+    const enableGrouping = settings?.misc?.enableCategoryGrouping !== false;
+
+    let targetList;
+    if (enableGrouping) {
+        const currGroup = allGroups.find(g => g.id === groupId);
+        const cat = (currGroup?.category || '').trim() || '未分类';
+        targetList = allGroups
+            .filter(g => ((g.category || '').trim() || '未分类') === cat)
+            .sort((a, b) => (Number(a.injectionOrder) || 0) - (Number(b.injectionOrder) || 0));
+    } else {
+        targetList = [...allGroups].sort((a, b) => (Number(a.injectionOrder) || 0) - (Number(b.injectionOrder) || 0));
+    }
+
+    const idx = targetList.findIndex(g => g.id === groupId);
+    if (idx === -1) return;
+
+    if (direction === 'up') {
+        if (idx === 0) {
+            showToast('已在最上方', 'info');
+            return;
+        }
+        const prevGroup = targetList[idx - 1];
+        const currGroup = targetList[idx];
+
+        let prevOrder = Number(prevGroup.injectionOrder) || 0;
+        let currOrder = Number(currGroup.injectionOrder) || 0;
+
+        if (prevOrder === currOrder) {
+            targetList.forEach((g, i) => {
+                g.injectionOrder = i * 10;
+                saveGroup(g);
+            });
+            prevOrder = (idx - 1) * 10;
+            currOrder = idx * 10;
+        }
+
+        currGroup.injectionOrder = prevOrder;
+        prevGroup.injectionOrder = currOrder;
+        saveGroup(currGroup);
+        saveGroup(prevGroup);
+        refreshGroupList();
+        showToast(`已上移「${currGroup.name}」(顺序: ${currGroup.injectionOrder})`, 'success');
+    } else if (direction === 'down') {
+        if (idx === targetList.length - 1) {
+            showToast('已在最下方', 'info');
+            return;
+        }
+        const nextGroup = targetList[idx + 1];
+        const currGroup = targetList[idx];
+
+        let nextOrder = Number(nextGroup.injectionOrder) || 0;
+        let currOrder = Number(currGroup.injectionOrder) || 0;
+
+        if (nextOrder === currOrder) {
+            targetList.forEach((g, i) => {
+                g.injectionOrder = i * 10;
+                saveGroup(g);
+            });
+            currOrder = idx * 10;
+            nextOrder = (idx + 1) * 10;
+        }
+
+        currGroup.injectionOrder = nextOrder;
+        nextGroup.injectionOrder = currOrder;
+        saveGroup(currGroup);
+        saveGroup(nextGroup);
+        refreshGroupList();
+        showToast(`已下移「${currGroup.name}」(顺序: ${currGroup.injectionOrder})`, 'success');
+    }
+}
+
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
 function _bindToolbar(container) {
     container.querySelector('#random-add-group-btn')?.addEventListener('click', () => {
         openGroupModal(null);
+    });
+
+    container.querySelector('#random-renumber-order-btn')?.addEventListener('click', () => {
+        const allGroups = getAllGroups();
+        if (allGroups.length === 0) {
+            showToast('当前没有宏配置组', 'info');
+            return;
+        }
+        const sorted = [...allGroups].sort((a, b) => (Number(a.injectionOrder) || 0) - (Number(b.injectionOrder) || 0));
+        sorted.forEach((g, idx) => {
+            g.injectionOrder = idx * 10;
+            saveGroup(g);
+        });
+        refreshGroupList();
+        showToast(`已按注入顺序将 ${sorted.length} 个宏组序号规范化为 0, 10, 20...`, 'success');
     });
 
     container.querySelector('#random-inspect-btn')?.addEventListener('click', () => {
