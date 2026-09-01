@@ -374,6 +374,8 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
 
     const chatEl = container.querySelector('#random-gen-chat');
     container.querySelector('#random-gen-hint').style.display = 'none';
+    const resultEl = container.querySelector('#random-gen-result');
+    if (resultEl) resultEl.style.display = 'none';
 
     let currentTurn;
     let turnIdx;

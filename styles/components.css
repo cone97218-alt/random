@@ -1991,13 +1991,14 @@ details:not([open]) .random-gen-chevron {
 }
 
 .random-generate-chat {
-    flex:       1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding:    12px 14px;
-    display:    flex;
+    flex:        1 1 0;
+    min-height:  140px;
+    overflow-y:  auto;
+    overflow-x:  hidden;
+    padding:     12px 14px;
+    display:     flex;
     flex-direction: column;
-    gap:        10px;
+    gap:         10px;
 }
 .random-gen-hint {
     display:        flex;
@@ -2019,6 +2020,7 @@ details:not([open]) .random-gen-chevron {
     box-sizing:     border-box;
     white-space:    pre-wrap;
     word-break:     break-word;
+    flex-shrink:    0;
 }
 .random-gen-bubble--ai {
     align-self:     stretch;
@@ -2143,9 +2145,10 @@ details:not([open]) .random-gen-chevron {
     display:        flex;
     flex-direction: column;
     gap:            8px;
-    height:         75%;
-    max-height:     75%;
-    flex-shrink:    0;
+    max-height:     48%;
+    min-height:     120px;
+    flex:           0 1 auto;
+    overflow-y:     auto;
     box-sizing:     border-box;
     background:     var(--random-bg-panel);
 }
