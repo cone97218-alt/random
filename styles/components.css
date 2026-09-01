@@ -2105,6 +2105,24 @@ details:not([open]) .random-gen-chevron {
     font-size:       0.75em;
     color:           var(--random-text-muted);
 }
+.random-swipe-rescan {
+    margin-left:    4px;
+    padding:        2px 6px !important;
+    border-radius:  var(--random-radius-sm);
+    background:     var(--random-tag-bg);
+    border:         1px solid var(--random-border);
+    color:          var(--random-accent) !important;
+    display:        inline-flex;
+    align-items:    center;
+    gap:            4px;
+    font-size:      0.9em;
+    cursor:         pointer;
+    transition:     all var(--random-transition);
+}
+.random-swipe-rescan:hover {
+    background:     var(--random-input-bg);
+    border-color:   var(--random-accent);
+}
 
 /* ── User Bubble Inline Edit ── */
 .random-user-edit-wrap {

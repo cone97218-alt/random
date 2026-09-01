@@ -606,7 +606,7 @@ function _createAIBubble(turnIdx) {
                 <span class="random-gen-swipe-counter">1/1</span>
                 <button class="random-icon-btn--xs random-swipe-next" title="下一条 (Swipe Right)"><i class="fa-solid fa-chevron-right"></i></button>
                 <button class="random-icon-btn--xs random-swipe-reroll" title="重新生成 (Swipe/Reroll)"><i class="fa-solid fa-rotate"></i></button>
-                <button class="random-icon-btn--xs random-swipe-rescan" title="重新扫描并载入此条选项 (防止误关闭)"><i class="fa-solid fa-file-import"></i></button>
+                <button class="random-swipe-rescan" title="从该条消息提取选项/宏组并打开结果抽屉"><i class="fa-solid fa-table-list"></i> 提取/导入</button>
             </div>
         </div>
     `;
@@ -636,8 +636,11 @@ function _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx) {
         if (turn.activeIndex > 0) {
             turn.activeIndex--;
             _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx);
+            const targetContainer = _container || document.querySelector('#random-view-generate');
+            const resultEl = targetContainer?.querySelector('#random-gen-result');
+            const isDrawerOpen = resultEl && resultEl.style.display !== 'none';
             const structured = tryParseStructuredAIResponse(turn.swipes[turn.activeIndex]);
-            _populateResultEditor(_container, turn.swipes[turn.activeIndex], structured);
+            _populateResultEditor(targetContainer, turn.swipes[turn.activeIndex], structured, isDrawerOpen);
         }
     };
 
@@ -645,8 +648,11 @@ function _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx) {
         if (turn.activeIndex < turn.swipes.length - 1) {
             turn.activeIndex++;
             _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx);
+            const targetContainer = _container || document.querySelector('#random-view-generate');
+            const resultEl = targetContainer?.querySelector('#random-gen-result');
+            const isDrawerOpen = resultEl && resultEl.style.display !== 'none';
             const structured = tryParseStructuredAIResponse(turn.swipes[turn.activeIndex]);
-            _populateResultEditor(_container, turn.swipes[turn.activeIndex], structured);
+            _populateResultEditor(targetContainer, turn.swipes[turn.activeIndex], structured, isDrawerOpen);
         }
     };
 
@@ -658,8 +664,8 @@ function _updateAIBubbleSwipeControls(aiBubble, turn, turnIdx) {
         rescanBtn.onclick = () => {
             const raw = turn.swipes[turn.activeIndex] || '';
             const structured = tryParseStructuredAIResponse(raw);
-            _populateResultEditor(_container, raw, structured);
-            showToast('已重新扫描此条消息并打开导入面板', 'info');
+            const targetContainer = _container || document.querySelector('#random-view-generate');
+            _populateResultEditor(targetContainer, raw, structured, true);
         };
     }
 }
@@ -684,28 +690,37 @@ function _rebuildChatDOM(container) {
         _updateAIBubbleSwipeControls(aiBubble, turn, idx);
     });
 
-    chatEl.scrollTop = chatEl.scrollHeight;
+    requestAnimationFrame(() => {
+        chatEl.scrollTop = chatEl.scrollHeight;
+    });
 }
 
 // ── Populate Result Editor ────────────────────────────────────────────────────
 
-function _populateResultEditor(container, rawText, structured) {
-    const resultEl = container.querySelector('#random-gen-result');
-    const editListEl = container.querySelector('#random-gen-option-edit-list');
-    const structPreviewEl = container.querySelector('#random-gen-structured-preview');
-    const structNameEl = container.querySelector('#random-gen-structured-name');
-    const structCountEl = container.querySelector('#random-gen-structured-count');
-    const structTemplateEl = container.querySelector('#random-gen-structured-template');
-    const updateBtn = container.querySelector('#random-gen-apply-update-btn');
-    const importBtn = container.querySelector('#random-gen-import-btn');
+function _populateResultEditor(container, rawText, structured, forceOpen = false) {
+    const targetContainer = container || _container || document.querySelector('#random-view-generate');
+    if (!targetContainer) return;
 
-    resultEl.style.display = '';
+    const resultEl = targetContainer.querySelector('#random-gen-result');
+    const editListEl = targetContainer.querySelector('#random-gen-option-edit-list');
+    const structPreviewEl = targetContainer.querySelector('#random-gen-structured-preview');
+    const structNameEl = targetContainer.querySelector('#random-gen-structured-name');
+    const structCountEl = targetContainer.querySelector('#random-gen-structured-count');
+    const structTemplateEl = targetContainer.querySelector('#random-gen-structured-template');
+    const updateBtn = targetContainer.querySelector('#random-gen-apply-update-btn');
+    const importBtn = targetContainer.querySelector('#random-gen-import-btn');
+
+    if (!resultEl || !editListEl) return;
     editListEl.innerHTML = '';
 
+    const isStructured = Boolean(structured && structured.macros && structured.macros.length > 0);
     const hasInjected = _injectedGroupIds.size > 0;
     const isMultiInjected = _injectedGroupIds.size > 1;
 
-    if (structured && structured.macros && structured.macros.length > 0) {
+    // Only auto-open drawer when structured data is returned OR forceOpen is requested (via button click)
+    const shouldOpen = isStructured || forceOpen;
+
+    if (isStructured) {
         // Structured Full Group
         if (structPreviewEl) {
             structPreviewEl.style.display = 'flex';
@@ -716,7 +731,7 @@ function _populateResultEditor(container, rawText, structured) {
 
         (structured.macros || []).forEach(m => {
             (m.options || []).forEach(opt => {
-                _addEditableRow(container, opt.text || opt, opt.weight || 1, m.id);
+                _addEditableRow(targetContainer, opt.text || opt, opt.weight || 1, m.id);
             });
         });
 
@@ -730,7 +745,7 @@ function _populateResultEditor(container, rawText, structured) {
             if (span) span.textContent = isMultiInjected ? '另存为合并新宏组' : '另存为新宏组';
         }
 
-        showToast(`AI 已完成智能处理: ${structured.groupName || '宏配置组'}`, 'success');
+        showToast(`AI 已完成结构化宏组设计: ${structured.groupName || '宏配置组'}`, 'success');
     } else {
         if (structPreviewEl) structPreviewEl.style.display = 'none';
         if (updateBtn) updateBtn.style.display = 'none';
@@ -740,15 +755,22 @@ function _populateResultEditor(container, rawText, structured) {
         }
 
         const options = parseAIResponseToOptions(rawText);
-        if (options.length === 0) {
-            showToast('AI 未返回有效选项', 'info');
-        } else {
-            options.forEach(opt => _addEditableRow(container, opt, 1));
-            showToast(`已生成 ${options.length} 个选项`, 'success');
+        if (options.length > 0) {
+            options.forEach(opt => _addEditableRow(targetContainer, opt, 1));
+            if (forceOpen) {
+                showToast(`已从回复中提取 ${options.length} 个选项`, 'success');
+            }
+        } else if (forceOpen) {
+            showToast('该条回复中未检测到列表选项，可在面板手动添加', 'info');
         }
     }
 
-    resultEl.scrollIntoView({ behavior: 'smooth' });
+    if (shouldOpen) {
+        resultEl.style.display = '';
+        resultEl.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        resultEl.style.display = 'none';
+    }
 }
 
 function _addEditableRow(container, text, weight = 1, macroTag = '') {
