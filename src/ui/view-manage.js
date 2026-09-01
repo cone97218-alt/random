@@ -273,12 +273,6 @@ function _buildGroupCard(group) {
                 <span class="random-group-card-scope">${group.scope === 'global' ? '全局' : '角色卡'}</span>
             </div>
             <div class="random-group-card-actions">
-                <button class="random-icon-btn random-gc-move-up" title="按注入顺序上移 (当前序号: ${group.injectionOrder ?? 0})">
-                    <i class="fa-solid fa-arrow-up"></i>
-                </button>
-                <button class="random-icon-btn random-gc-move-down" title="按注入顺序下移 (当前序号: ${group.injectionOrder ?? 0})">
-                    <i class="fa-solid fa-arrow-down"></i>
-                </button>
                 <button class="random-icon-btn random-gc-scan" title="重新扫描模板宏并自动绑定">
                     <i class="fa-solid fa-satellite-dish"></i>
                 </button>
@@ -328,17 +322,6 @@ function _buildGroupCard(group) {
             if (btnEl)  btnEl.title = '展开宏组';
             card.classList.add('random-group-card--collapsed');
         }
-    });
-
-    // Move Up / Move Down buttons
-    card.querySelector('.random-gc-move-up')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        _moveGroupOrder(group.id, 'up');
-    });
-
-    card.querySelector('.random-gc-move-down')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        _moveGroupOrder(group.id, 'down');
     });
 
     // Quick direct edit order badge
