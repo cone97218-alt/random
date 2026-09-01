@@ -36,28 +36,26 @@
                     <div class="random-gen-slot-title">
                         <i class="fa-solid fa-boxes-stacked" style="color:var(--random-accent);"></i>
                         <span>注入已有宏组上下文</span>
+                        <span class="random-gen-injected-count" id="random-gen-injected-count" style="display:none;"></span>
                     </div>
                     <div class="random-gen-slot-controls">
                         <select class="random-select random-select--sm" id="random-gen-inject-group-select">
-                            <option value="">— 选择注入宏组到提示词 —</option>
+                            <option value="">+ 追加注入宏组到提示词...</option>
                         </select>
-                        <button class="random-btn random-btn--xs random-btn--secondary" id="random-gen-inject-curr-btn" type="button" title="注入上方已选的目标宏组">
-                            <i class="fa-solid fa-arrow-down-to-bracket"></i>
+                        <button class="random-btn random-btn--xs random-btn--secondary" id="random-gen-inject-curr-btn" type="button" title="追加注入上方已选的目标宏组">
+                            <i class="fa-solid fa-plus"></i>
                             <span>注入当前组</span>
+                        </button>
+                        <button class="random-btn random-btn--xs" id="random-gen-injected-clear-all-btn" type="button" style="display:none;" title="清空全部已注入的宏组">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>清空</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Injected Group Preview Chip Container -->
-                <div class="random-gen-injected-preview" id="random-gen-injected-preview" style="display:none;">
-                    <div class="random-gen-injected-info">
-                        <i class="fa-solid fa-layer-group" style="color:var(--random-accent);"></i>
-                        <span class="random-gen-injected-name" id="random-gen-injected-name"></span>
-                        <span class="random-gen-injected-stats" id="random-gen-injected-stats"></span>
-                    </div>
-                    <button class="random-icon-btn--xs random-icon-btn--danger" id="random-gen-injected-clear-btn" type="button" title="取消注入">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                <!-- Injected Groups List (Multi-group chips container) -->
+                <div class="random-gen-injected-list" id="random-gen-injected-list" style="display:none;">
+                    <!-- Injected group chips rendered here -->
                 </div>
             </div>
         </div>
@@ -67,7 +65,7 @@
     <div class="random-generate-chat" id="random-gen-chat">
         <div class="random-gen-hint" id="random-gen-hint">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>选择或注入已有宏组后，点击下方「整理/扩充/嵌套」等功能卡槽，或输入要求让 AI 智能整理</span>
+            <span>选择或注入一个或多个已有宏组后，点击下方「合并/整理/扩充/嵌套」等功能卡槽，让 AI 智能整理</span>
         </div>
     </div>
 
@@ -76,7 +74,7 @@
         <div class="random-generate-result-header">
             <span class="random-generate-result-label">
                 <i class="fa-solid fa-list-check"></i>
-                <span id="random-gen-result-title">AI 生成/整理结果（可编辑）</span>
+                <span id="random-gen-result-title">AI 生成/整理/合并结果（可编辑）</span>
             </span>
             <button class="random-btn random-btn--sm" id="random-gen-clear-result-btn" title="清空结果">
                 <i class="fa-solid fa-trash"></i>
@@ -123,6 +121,10 @@
         </summary>
         <div class="random-gen-chips-bar">
             <div class="random-gen-chips-scroll">
+                <button class="random-gen-chip-btn" data-slot="merge" type="button" title="将注入的多个宏组深度合并重组成一个统一连贯的宏组与模板">
+                    <i class="fa-solid fa-code-merge"></i>
+                    <span>合并多个宏组</span>
+                </button>
                 <button class="random-gen-chip-btn" data-slot="clean" type="button" title="去除重复项、修正错别字并规范格式">
                     <i class="fa-solid fa-broom"></i>
                     <span>整理与去重</span>

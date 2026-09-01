@@ -19,9 +19,10 @@ let _container = null;
 let _abortController = null;
 let _streamedText = '';
 let _rendered = false;
-let _injectedGroupId = null;
+const _injectedGroupIds = new Set();
 
 const PROMPT_SLOT_TEMPLATES = {
+    merge: '请深度整合上述注入的全部已有宏配置组：分析各个宏组的职能与候选项，合并重写为一个统一连贯的主注入模板，合并重叠或强相关的子宏（并去除重复选项），规划成一个结构完整、层级清晰的全新合并宏组，并按标准 JSON 格式输出。',
     clean: '请帮我全面整理并优化上述宏配置组的候选项：去除重复或表意相近的项，修正错别字与语病，规范句式结构，剔除低质内容，保持高质量并按标准结构返回。',
     expand: '请深度分析上述宏组已有选项的主题风格、语境和叙事维度，扩充 15-20 个更丰富生动、不同维度的全新高质量候选项。',
     split_nested: '请分析上述宏组的选项与模板，提取其中可抽取的公共维度（如时间、天气、场景、人物动作、情绪氛围等），重构为结构化的二级嵌套宏 {{random_xxx}}，并规划对应的主注入模板。',
@@ -31,7 +32,7 @@ const PROMPT_SLOT_TEMPLATES = {
 
 /**
  * Message history with swipe turns
- * @type {Array<{ prompt: string, swipes: string[], activeIndex: number, structuredData: Object|null, injectedGroupId?: string|null }>}
+ * @type {Array<{ prompt: string, swipes: string[], activeIndex: number, structuredData: Object|null, injectedGroupIds?: string[] }>}
  */
 let _chatHistory = [];
 
@@ -43,6 +44,7 @@ export async function renderGenerateView(container) {
     if (_rendered) {
         _refreshGroupSelect(container);
         _refreshInjectGroupSelect(container);
+        _renderInjectedGroups(container);
         return;
     }
     _rendered = true;
@@ -53,12 +55,14 @@ export async function renderGenerateView(container) {
     _bindEvents(container);
     _refreshGroupSelect(container);
     _refreshInjectGroupSelect(container);
+    _renderInjectedGroups(container);
 }
 
 export function refreshGenerateViewSelectors() {
     if (_container && _rendered) {
         _refreshGroupSelect(_container);
         _refreshInjectGroupSelect(_container);
+        _renderInjectedGroups(_container);
     }
 }
 
@@ -89,20 +93,16 @@ function _refreshInjectGroupSelect(container) {
     const select = container.querySelector('#random-gen-inject-group-select');
     if (!select) return;
 
-    const prevVal = select.value || _injectedGroupId;
-    select.innerHTML = '<option value="">— 选择注入宏组到提示词 —</option>';
+    select.innerHTML = '<option value="">+ 追加注入宏组到提示词...</option>';
 
     const groups = getAllGroups();
     groups.forEach(g => {
+        const isInjected = _injectedGroupIds.has(g.id);
         const opt = document.createElement('option');
         opt.value = g.id;
-        opt.textContent = `${g.name || '未命名组'} (${(g.macros || []).length}个宏)`;
+        opt.textContent = `${isInjected ? '✓ ' : ''}${g.name || '未命名组'} (${(g.macros || []).length}个宏)`;
         select.appendChild(opt);
     });
-
-    if (prevVal && groups.some(g => g.id === prevVal)) {
-        select.value = prevVal;
-    }
 }
 
 function _updateSummaryHeader(container) {
@@ -110,63 +110,118 @@ function _updateSummaryHeader(container) {
     const badgeEl = container.querySelector('#random-gen-summary-badge');
     const targetGroupId = container.querySelector('#random-gen-group-select')?.value;
 
-    const targetGroup = targetGroupId ? getAllGroups().find(g => g.id === targetGroupId) : null;
-    const injectedGroup = _injectedGroupId ? getAllGroups().find(g => g.id === _injectedGroupId) : null;
+    const allGroups = getAllGroups();
+    const targetGroup = targetGroupId ? allGroups.find(g => g.id === targetGroupId) : null;
+    const injectedList = Array.from(_injectedGroupIds).map(id => allGroups.find(g => g.id === id)).filter(Boolean);
 
     if (summaryText) {
-        if (targetGroup && injectedGroup) {
-            summaryText.textContent = `目标: ${targetGroup.name} · 参考: ${injectedGroup.name}`;
+        if (targetGroup && injectedList.length > 0) {
+            summaryText.textContent = `目标: ${targetGroup.name} · 已注入: ${injectedList.map(g => g.name).join(', ')}`;
         } else if (targetGroup) {
             summaryText.textContent = `目标宏组: ${targetGroup.name}`;
-        } else if (injectedGroup) {
-            summaryText.textContent = `参考宏组: ${injectedGroup.name}`;
+        } else if (injectedList.length > 0) {
+            summaryText.textContent = `已注入参考组: ${injectedList.map(g => g.name).join(', ')}`;
         } else {
             summaryText.textContent = '目标宏组与注入上下文';
         }
     }
 
     if (badgeEl) {
-        if (_injectedGroupId && injectedGroup) {
+        if (injectedList.length > 0) {
             badgeEl.style.display = '';
-            badgeEl.textContent = `已注入参考组 (${(injectedGroup.macros || []).length}个宏)`;
+            badgeEl.textContent = `已注入 ${injectedList.length} 个宏组`;
         } else {
             badgeEl.style.display = 'none';
         }
     }
 }
 
-function _setInjectedGroup(container, groupId) {
-    _injectedGroupId = groupId || null;
-    const previewEl = container.querySelector('#random-gen-injected-preview');
-    const nameEl = container.querySelector('#random-gen-injected-name');
-    const statsEl = container.querySelector('#random-gen-injected-stats');
-    const selectEl = container.querySelector('#random-gen-inject-group-select');
-
-    if (selectEl) selectEl.value = groupId || '';
-
-    if (!groupId) {
-        if (previewEl) previewEl.style.display = 'none';
-        _updateSummaryHeader(container);
-        return;
-    }
-
+function _addInjectedGroup(container, groupId) {
+    if (!groupId) return;
     const group = getAllGroups().find(g => g.id === groupId);
-    if (!group) {
-        if (previewEl) previewEl.style.display = 'none';
-        _updateSummaryHeader(container);
+    if (!group) return;
+
+    if (_injectedGroupIds.has(groupId)) {
+        showToast(`宏组「${group.name}」已在注入列表中`, 'info');
         return;
     }
 
-    let totalOptions = 0;
-    (group.macros || []).forEach(mId => {
-        const m = getMacroById(mId);
-        if (m && Array.isArray(m.options)) totalOptions += m.options.length;
-    });
-
-    if (nameEl) nameEl.textContent = group.name || '未命名组';
-    if (statsEl) statsEl.textContent = `(${group.macros?.length || 0} 个宏定义 · 共 ${totalOptions} 条选项)`;
-    if (previewEl) previewEl.style.display = 'flex';
+    _injectedGroupIds.add(groupId);
+    _renderInjectedGroups(container);
+    _refreshInjectGroupSelect(container);
     _updateSummaryHeader(container);
+    showToast(`已追加注入宏组「${group.name}」到提示词上下文！`, 'success');
+}
+
+function _removeInjectedGroup(container, groupId) {
+    if (!_injectedGroupIds.has(groupId)) return;
+    const group = getAllGroups().find(g => g.id === groupId);
+    _injectedGroupIds.delete(groupId);
+    _renderInjectedGroups(container);
+    _refreshInjectGroupSelect(container);
+    _updateSummaryHeader(container);
+    showToast(`已移除宏组「${group?.name || groupId}」的注入`, 'info');
+}
+
+function _clearAllInjectedGroups(container) {
+    if (_injectedGroupIds.size === 0) return;
+    _injectedGroupIds.clear();
+    _renderInjectedGroups(container);
+    _refreshInjectGroupSelect(container);
+    _updateSummaryHeader(container);
+    showToast('已清空全部已注入的宏组', 'info');
+}
+
+function _renderInjectedGroups(container) {
+    const listEl = container.querySelector('#random-gen-injected-list');
+    const clearAllBtn = container.querySelector('#random-gen-injected-clear-all-btn');
+    const countEl = container.querySelector('#random-gen-injected-count');
+    if (!listEl) return;
+
+    const count = _injectedGroupIds.size;
+    if (count === 0) {
+        listEl.style.display = 'none';
+        listEl.innerHTML = '';
+        if (clearAllBtn) clearAllBtn.style.display = 'none';
+        if (countEl) countEl.style.display = 'none';
+        return;
+    }
+
+    listEl.style.display = 'flex';
+    listEl.innerHTML = '';
+    if (clearAllBtn) clearAllBtn.style.display = 'inline-flex';
+    if (countEl) {
+        countEl.style.display = '';
+        countEl.textContent = `共 ${count} 个`;
+    }
+
+    const allGroups = getAllGroups();
+    _injectedGroupIds.forEach(groupId => {
+        const group = allGroups.find(g => g.id === groupId);
+        if (!group) return;
+
+        let totalOptions = 0;
+        (group.macros || []).forEach(mId => {
+            const m = getMacroById(mId);
+            if (m && Array.isArray(m.options)) totalOptions += m.options.length;
+        });
+
+        const chip = document.createElement('div');
+        chip.className = 'random-gen-injected-chip';
+        chip.innerHTML = `
+            <i class="fa-solid fa-layer-group" style="color:var(--random-accent);"></i>
+            <span class="random-gen-injected-chip-name">${escapeHtml(group.name || '未命名组')}</span>
+            <span class="random-gen-injected-chip-stats">(${(group.macros || []).length}宏 · ${totalOptions}条)</span>
+            <span class="random-gen-injected-chip-remove" title="取消注入此宏组"><i class="fa-solid fa-xmark"></i></span>
+        `;
+
+        chip.querySelector('.random-gen-injected-chip-remove')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            _removeInjectedGroup(container, groupId);
+        });
+
+        listEl.appendChild(chip);
+    });
 }
 
 function _onGroupSelected(container, groupId) {
@@ -199,9 +254,9 @@ function _bindEvents(container) {
 
     // Injected Group selector events
     container.querySelector('#random-gen-inject-group-select')?.addEventListener('change', e => {
-        _setInjectedGroup(container, e.target.value);
         if (e.target.value) {
-            showToast('已将宏组注入到 AI 提示词上下文！', 'success');
+            _addInjectedGroup(container, e.target.value);
+            e.target.value = '';
         }
     });
 
@@ -211,14 +266,11 @@ function _bindEvents(container) {
             showToast('请先在顶部「目标宏组」中选择一个宏配置组', 'info');
             return;
         }
-        _setInjectedGroup(container, currGroupId);
-        const g = getAllGroups().find(item => item.id === currGroupId);
-        showToast(`已将当前宏组「${g?.name || currGroupId}」注入提示词上下文！`, 'success');
+        _addInjectedGroup(container, currGroupId);
     });
 
-    container.querySelector('#random-gen-injected-clear-btn')?.addEventListener('click', () => {
-        _setInjectedGroup(container, null);
-        showToast('已取消宏组注入', 'info');
+    container.querySelector('#random-gen-injected-clear-all-btn')?.addEventListener('click', () => {
+        _clearAllInjectedGroups(container);
     });
 
     // Prompt Functional Slots Chips
@@ -228,11 +280,11 @@ function _bindEvents(container) {
             const templateText = PROMPT_SLOT_TEMPLATES[slotKey];
             if (!templateText) return;
 
-            // Auto-inject current target group if not yet injected
-            if (!_injectedGroupId) {
+            // Auto-inject current target group if none injected yet
+            if (_injectedGroupIds.size === 0) {
                 const currGroupId = container.querySelector('#random-gen-group-select')?.value;
                 if (currGroupId) {
-                    _setInjectedGroup(container, currGroupId);
+                    _addInjectedGroup(container, currGroupId);
                 }
             }
 
@@ -304,6 +356,8 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
     let currentTurn;
     let turnIdx;
 
+    const currentInjectedIds = Array.from(_injectedGroupIds);
+
     if (isSwipe && turnIndex >= 0 && turnIndex < _chatHistory.length) {
         turnIdx = turnIndex;
         currentTurn = _chatHistory[turnIdx];
@@ -323,13 +377,13 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
             swipes: [''],
             activeIndex: 0,
             structuredData: null,
-            injectedGroupId: _injectedGroupId,
+            injectedGroupIds: currentInjectedIds,
         };
         _chatHistory.push(currentTurn);
         turnIdx = _chatHistory.length - 1;
 
         // Render User bubble
-        const userBubble = _createUserBubble(turnIdx, userPrompt, container, _injectedGroupId);
+        const userBubble = _createUserBubble(turnIdx, userPrompt, container, currentInjectedIds);
         chatEl.appendChild(userBubble);
     }
 
@@ -346,7 +400,9 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
     const historyContext = _chatHistory.slice(0, turnIdx);
 
     try {
-        const genOptions = { injectedGroupId: currentTurn.injectedGroupId || _injectedGroupId };
+        const genOptions = {
+            injectedGroupIds: currentTurn.injectedGroupIds || currentInjectedIds,
+        };
         for await (const chunk of generateMacroOptions(userPrompt, _abortController.signal, historyContext, genOptions)) {
             _streamedText += chunk;
             currentTurn.swipes[currentTurn.activeIndex] = _streamedText;
@@ -371,19 +427,25 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
 
 // ── Bubble Builders ───────────────────────────────────────────────────────────
 
-function _createUserBubble(turnIdx, userPrompt, container, injectedGroupId = null) {
+function _createUserBubble(turnIdx, userPrompt, container, injectedGroupIds = []) {
     const userBubble = document.createElement('div');
     userBubble.className = 'random-gen-bubble random-gen-bubble--user';
     userBubble.dataset.turn = turnIdx;
 
     let injectedTagHtml = '';
-    if (injectedGroupId) {
-        const group = getAllGroups().find(g => g.id === injectedGroupId);
-        if (group) {
+    const ids = Array.isArray(injectedGroupIds) ? injectedGroupIds : (injectedGroupIds ? [injectedGroupIds] : []);
+    if (ids.length > 0) {
+        const allGroups = getAllGroups();
+        const names = ids.map(id => {
+            const g = allGroups.find(item => item.id === id);
+            return g ? escapeHtml(g.name || id) : null;
+        }).filter(Boolean);
+
+        if (names.length > 0) {
             injectedTagHtml = `
                 <div class="random-gen-bubble-injected-tag">
                     <i class="fa-solid fa-boxes-stacked"></i>
-                    <span>已注入参考宏组: <strong>${escapeHtml(group.name || injectedGroupId)}</strong></span>
+                    <span>已注入参考组: <strong>${names.join(', ')}</strong></span>
                 </div>
             `;
         }
@@ -499,7 +561,7 @@ function _rebuildChatDOM(container) {
     }
 
     _chatHistory.forEach((turn, idx) => {
-        const userBubble = _createUserBubble(idx, turn.prompt, container, turn.injectedGroupId);
+        const userBubble = _createUserBubble(idx, turn.prompt, container, turn.injectedGroupIds);
         chatEl.appendChild(userBubble);
 
         const aiBubble = _createAIBubble(idx);
@@ -525,11 +587,14 @@ function _populateResultEditor(container, rawText, structured) {
     resultEl.style.display = '';
     editListEl.innerHTML = '';
 
+    const hasInjected = _injectedGroupIds.size > 0;
+    const isMultiInjected = _injectedGroupIds.size > 1;
+
     if (structured && structured.macros && structured.macros.length > 0) {
         // Structured Full Group
         if (structPreviewEl) {
             structPreviewEl.style.display = 'flex';
-            if (structNameEl) structNameEl.textContent = structured.groupName || 'AI 生成/整理宏组';
+            if (structNameEl) structNameEl.textContent = structured.groupName || (isMultiInjected ? 'AI 合并重构宏组' : 'AI 生成/整理宏组');
             if (structCountEl) structCountEl.textContent = `共 ${structured.macros.length} 个宏定义`;
             if (structTemplateEl) structTemplateEl.textContent = structured.template || '(无模板)';
         }
@@ -541,14 +606,16 @@ function _populateResultEditor(container, rawText, structured) {
         });
 
         if (updateBtn) {
-            updateBtn.style.display = _injectedGroupId ? '' : 'none';
+            updateBtn.style.display = hasInjected ? '' : 'none';
+            const span = updateBtn.querySelector('span');
+            if (span) span.textContent = isMultiInjected ? '覆盖更新到主宏组' : '更新原宏组';
         }
         if (importBtn) {
             const span = importBtn.querySelector('span');
-            if (span) span.textContent = '另存为新宏组';
+            if (span) span.textContent = isMultiInjected ? '另存为合并新宏组' : '另存为新宏组';
         }
 
-        showToast(`AI 已完成宏组智能整理: ${structured.groupName || '宏配置组'}`, 'success');
+        showToast(`AI 已完成智能处理: ${structured.groupName || '宏配置组'}`, 'success');
     } else {
         if (structPreviewEl) structPreviewEl.style.display = 'none';
         if (updateBtn) updateBtn.style.display = 'none';
@@ -592,14 +659,19 @@ function _addEditableRow(container, text, weight = 1, macroTag = '') {
 // ── Update Injected Group in Place ────────────────────────────────────────────
 
 function _applyUpdateToInjectedGroup(container) {
-    if (!_injectedGroupId) {
+    if (_injectedGroupIds.size === 0) {
         showToast('未检测到已注入的宏组', 'error');
         return;
     }
 
-    const group = getAllGroups().find(g => g.id === _injectedGroupId);
+    const allGroups = getAllGroups();
+    // Use target group if selected, otherwise the first injected group
+    const targetGroupId = container.querySelector('#random-gen-group-select')?.value;
+    const primaryGroupId = targetGroupId || Array.from(_injectedGroupIds)[0];
+    const group = allGroups.find(g => g.id === primaryGroupId);
+
     if (!group) {
-        showToast('找不到已注入的原宏配置组', 'error');
+        showToast('找不到待更新的目标宏配置组', 'error');
         return;
     }
 
@@ -645,13 +717,13 @@ function _applyUpdateToInjectedGroup(container) {
         saveGroup(group);
         _refreshGroupSelect(container);
         _refreshInjectGroupSelect(container);
-        _setInjectedGroup(container, group.id);
+        _renderInjectedGroups(container);
         refreshGroupList();
 
         container.querySelector('#random-gen-result').style.display = 'none';
         container.querySelector('#random-gen-option-edit-list').innerHTML = '';
 
-        showToast(`🎉 成功更新原宏组「${group.name}」及 ${structured.macros.length} 个关联宏！`, 'success');
+        showToast(`🎉 成功更新宏组「${group.name}」及 ${structured.macros.length} 个关联宏！`, 'success');
     } else {
         // Fallback: normal options update into group
         _importOptions(container);

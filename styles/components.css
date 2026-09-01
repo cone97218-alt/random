@@ -1866,33 +1866,50 @@ details:not([open]) .random-gen-chevron {
     gap:         6px;
     flex-wrap:   wrap;
 }
-.random-gen-injected-preview {
+.random-gen-injected-count {
+    font-size:       0.75em;
+    font-weight:     normal;
+    color:           var(--random-accent);
+    background:      var(--random-input-bg);
+    border:          1px solid var(--random-border);
+    border-radius:   10px;
+    padding:         1px 6px;
+}
+.random-gen-injected-list {
     display:         flex;
     flex-direction:  row;
+    flex-wrap:       wrap;
+    gap:             6px;
+    padding-top:     2px;
+}
+.random-gen-injected-chip {
+    display:         inline-flex;
     align-items:     center;
-    justify-content: space-between;
+    gap:             6px;
     background:      var(--random-tag-bg);
     border:          1px solid var(--random-border);
     border-radius:   var(--random-radius-sm);
-    padding:         4px 8px;
-    gap:             8px;
+    padding:         3px 8px;
+    font-size:       0.8em;
+    color:           var(--random-text);
+    transition:      all var(--random-transition);
 }
-.random-gen-injected-info {
-    display:     flex;
-    align-items: center;
-    gap:         6px;
-    font-size:   0.82em;
-    overflow:    hidden;
+.random-gen-injected-chip-name {
+    font-weight:     600;
 }
-.random-gen-injected-name {
-    font-weight: 600;
-    color:       var(--random-text);
-    white-space: nowrap;
+.random-gen-injected-chip-stats {
+    font-size:       0.88em;
+    color:           var(--random-text-muted);
 }
-.random-gen-injected-stats {
-    color:       var(--random-text-muted);
-    font-size:   0.9em;
-    white-space: nowrap;
+.random-gen-injected-chip-remove {
+    cursor:          pointer;
+    color:           var(--random-text-muted);
+    font-size:       0.9em;
+    padding:         0 2px;
+    transition:      color var(--random-transition);
+}
+.random-gen-injected-chip-remove:hover {
+    color:           var(--random-danger, #e55);
 }
 
 /* ── Prompt Functional Slots Collapsible ── */
