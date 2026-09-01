@@ -760,6 +760,24 @@ export async function openInspectModal() {
     const modal = document.getElementById('random-inspect-modal');
     if (!modal) return;
     _renderInspectContent(modal);
+
+    // Sync tab and pane states
+    const tabNext = modal.querySelector('#random-inspect-tab-next');
+    const tabLast = modal.querySelector('#random-inspect-tab-last');
+    const paneNext = modal.querySelector('#random-inspect-pane-next');
+    const paneLast = modal.querySelector('#random-inspect-pane-last');
+    if (_inspectActiveTab === 'next') {
+        tabNext?.classList.add('random-inspect-tab-btn--active');
+        tabLast?.classList.remove('random-inspect-tab-btn--active');
+        if (paneNext) paneNext.style.display = '';
+        if (paneLast) paneLast.style.display = 'none';
+    } else {
+        tabLast?.classList.add('random-inspect-tab-btn--active');
+        tabNext?.classList.remove('random-inspect-tab-btn--active');
+        if (paneLast) paneLast.style.display = '';
+        if (paneNext) paneNext.style.display = 'none';
+    }
+
     modal.style.display = 'flex';
 }
 
@@ -838,9 +856,20 @@ export function getInspectData() {
             statusText = willReroll ? '下轮新Roll' : `保持中 (${pos + 1}/${keepY})`;
         }
 
-        const previewText = group.template
-            ? previewTemplate(group.template, state.currentValues || {})
-            : '';
+        let previewText = '';
+        if (willReroll) {
+            const tempState = {
+                currentValues: { ...(state.currentValues || {}) },
+                pinnedMacros: { ...(state.pinnedMacros || {}) },
+                lastRolledOptions: { ...(state.lastRolledOptions || {}) },
+            };
+            const sim = resolveGroupTemplate(group, tempState, true);
+            previewText = sim.resolved || '';
+        } else {
+            previewText = group.template
+                ? previewTemplate(group.template, state.currentValues || {})
+                : '';
+        }
 
         nextUpcoming.push({
             groupId: group.id,
@@ -1028,9 +1057,22 @@ function _renderInspectContent(modal) {
             statusDesc = '下轮生成时将重新抽取随机宏填入';
         }
 
-        const preview = group.template
-            ? previewTemplate(group.template, state.currentValues || {})
-            : '（无模板）';
+        let preview = '';
+        if (willReroll) {
+            // Fresh simulation for next round's roll
+            const tempState = {
+                currentValues: { ...(state.currentValues || {}) },
+                pinnedMacros: { ...(state.pinnedMacros || {}) },
+                lastRolledOptions: { ...(state.lastRolledOptions || {}) },
+            };
+            const sim = resolveGroupTemplate(group, tempState, true);
+            preview = sim.resolved || '（无有效生成内容）';
+        } else {
+            // In keep period, show reused content
+            preview = group.template
+                ? previewTemplate(group.template, state.currentValues || {})
+                : '（无模板）';
+        }
 
         if (willInject) {
             nextItems.push(`
