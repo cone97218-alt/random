@@ -237,8 +237,21 @@ async function _buildMessagesFromPreset(userPrompt, extChatHistory, injectedRefT
     let userInputAdded = false;
 
     for (const comp of components) {
-        // Skip components that SillyTavern's preset already manages natively
-        if (['world_info_before', 'world_info_after', 'world_info_depth', 'persona', 'char_desc', 'char_personality', 'scenario', 'chat_history'].includes(comp.builtinKey)) {
+        // Skip components that SillyTavern's preset already manages natively (including context transition anchors)
+        const isPresetHandled = [
+            'world_info_before',
+            'world_info_after',
+            'world_info_depth',
+            'persona',
+            'char_desc',
+            'char_personality',
+            'scenario',
+            'chat_history',
+            'anchor_context_lead',
+            'anchor_history_lead',
+        ].includes(comp.builtinKey);
+
+        if (isPresetHandled) {
             continue;
         }
 
