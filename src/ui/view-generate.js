@@ -366,16 +366,31 @@ function _bindEvents(container) {
 // ── Generation Flow ───────────────────────────────────────────────────────────
 
 async function _startGeneration(container, userPrompt, isSwipe = false, turnIndex = -1) {
+    const targetContainer = container || _container || document.querySelector('#random-view-generate');
     _abortController?.abort();
     _abortController = new AbortController();
     _streamedText = '';
 
-    _setGenerating(container, true);
+    if (targetContainer) _setGenerating(targetContainer, true);
 
-    const chatEl = container.querySelector('#random-gen-chat');
-    container.querySelector('#random-gen-hint').style.display = 'none';
-    const resultEl = container.querySelector('#random-gen-result');
+    const chatEl = targetContainer?.querySelector('#random-gen-chat');
+    if (!chatEl) {
+        console.error('[Random] #random-gen-chat not found');
+        if (targetContainer) _setGenerating(targetContainer, false);
+        return;
+    }
+
+    const hintEl = targetContainer.querySelector('#random-gen-hint');
+    if (hintEl) hintEl.style.display = 'none';
+
+    const resultEl = targetContainer.querySelector('#random-gen-result');
     if (resultEl) resultEl.style.display = 'none';
+
+    // Auto collapse top details on message sent to give maximum height to chat area
+    const topDetails = targetContainer.querySelector('#random-gen-top-details');
+    if (topDetails && topDetails.open) {
+        topDetails.open = false;
+    }
 
     let currentTurn;
     let turnIdx;
@@ -407,7 +422,7 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
         turnIdx = _chatHistory.length - 1;
 
         // Render User bubble
-        const userBubble = _createUserBubble(turnIdx, userPrompt, container, currentInjectedIds);
+        const userBubble = _createUserBubble(turnIdx, userPrompt, targetContainer, currentInjectedIds);
         chatEl.appendChild(userBubble);
     }
 
@@ -418,7 +433,9 @@ async function _startGeneration(container, userPrompt, isSwipe = false, turnInde
         chatEl.appendChild(aiBubble);
     }
     _updateAIBubbleSwipeControls(aiBubble, currentTurn, turnIdx);
-    chatEl.scrollTop = chatEl.scrollHeight;
+    requestAnimationFrame(() => {
+        chatEl.scrollTop = chatEl.scrollHeight;
+    });
 
     // History = all turns before this one (for multi-turn context)
     const historyContext = _chatHistory.slice(0, turnIdx);
