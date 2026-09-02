@@ -13,7 +13,7 @@ import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.j
 import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument, SlashCommandNamedArgument } from '../../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue } from '../../../slash-commands/SlashCommandEnumValue.js';
-import { showPanel, hidePanel } from './src/ui/panel.js';
+import { showPanel, hidePanel, togglePanel, initPanel, isPanelOpen } from './src/ui/panel.js';
 import { registerHooks } from './src/core/hooks.js';
 import { injectThemeRgbVariables } from './src/utils/theme.js';
 import { getAllGroups, getActiveGroups, getGroupChatState, saveChatState, saveGroup, clearChatState } from './src/core/storage.js';
@@ -32,7 +32,7 @@ function createTriggerButton(isQrBar = true) {
     btn.id = QR_BTN_ID;
     btn.tabIndex = 0;
     btn.role = 'button';
-    btn.title = '随机宏引擎 (左键打开面板 / 右键快速重抽)';
+    btn.title = '随机宏引擎 (左键打开/收起面板 / 右键快速重抽)';
 
     if (isQrBar) {
         btn.className = 'qr--button menu_button interactable';
@@ -41,11 +41,11 @@ function createTriggerButton(isQrBar = true) {
         btn.className = 'fa-solid fa-dice interactable random-chat-bar-btn';
     }
 
-    // Left click -> Open Panel
+    // Left click -> Fast GPU Toggle Panel
     btn.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
-        showPanel();
+        togglePanel();
     });
 
     // Right click -> Quick re-roll all active macro groups
@@ -450,6 +450,9 @@ export async function init() {
     const observer = new MutationObserver(handleMutation);
     observer.observe(document.body, { childList: true, subtree: true });
 
+    // Pre-warm singleton resident panel DOM in background
+    initPanel().catch(err => console.warn('[Random Macro] Pre-warming panel DOM error:', err));
+
     // Expose global window API for other extensions
     window.RandomMacro = {
         // UI Operations
@@ -457,6 +460,9 @@ export async function init() {
         closeInspect: () => closeInspectModal(),
         openPanel: (view = 'manage') => showPanel(view),
         hidePanel: () => hidePanel(),
+        togglePanel: (view) => togglePanel(undefined, view),
+        isPanelOpen: () => isPanelOpen(),
+        initPanel: () => initPanel(),
 
         // Data APIs
         getInspectData: () => getInspectData(),
@@ -471,7 +477,7 @@ export async function init() {
         forceNextInjection: (groupId) => forceNextInjection(groupId),
     };
 
-    console.log('[Random Macro] Extension initialized: QR bar trigger and slash commands ready (no magic wand menu).');
+    console.log('[Random Macro] Extension initialized: GPU-accelerated panel, QR bar trigger and slash commands ready.');
 }
 
 // Export module APIs
@@ -481,6 +487,9 @@ export {
     getInspectData,
     showPanel,
     hidePanel,
+    togglePanel,
+    isPanelOpen,
+    initPanel,
     executeQuickReroll,
     forceNextInjection,
 };

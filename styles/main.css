@@ -32,106 +32,130 @@
     text-orientation: mixed !important;
 }
 
-/* ── Overlay ─────────────────────────────────────────── */
+/* ── Overlay / Backdrop (GPU Independent Compositing Layer) ── */
 .random-overlay {
-    position:        fixed;
-    top:             0;
-    left:            0;
-    width:           100vw;
-    height:          100vh;
-    z-index:         9999;
-    background:      transparent;
-    opacity:         0;
-    transition:      opacity var(--random-transition);
-    pointer-events:  none;
-    display:         none;
+    position:                 fixed;
+    top:                      0;
+    left:                     0;
+    right:                    0;
+    bottom:                   0;
+    width:                    100vw;
+    height:                   100vh;
+    height:                   100dvh;
+    z-index:                  9999;
+    background:               rgba(0, 0, 0, 0.45);
+    backdrop-filter:          blur(2px);
+    -webkit-backdrop-filter:  blur(2px);
+    opacity:                  0;
+    pointer-events:           none;
+    will-change:              opacity;
+    transition:               opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .random-overlay.show {
-    opacity:        1;
-    display:        block;
-    pointer-events: auto;
+    opacity:                  1;
+    pointer-events:           auto;
 }
 
-/* ── Panel Content Box ───────────────────────────────── */
+/* ── Panel Content Box (GPU Hardware Accelerated Layer) ── */
 .random-popup-content {
-    position:        absolute;
-    display:         flex;
-    flex-direction:  column;
-    background:      var(--random-bg);
-    border:          1px solid var(--random-border);
-    border-radius:   var(--random-radius);
-    box-shadow:      var(--random-shadow);
-    overflow:        hidden;
-    box-sizing:      border-box;
-    transition:      transform var(--random-transition), width var(--random-transition), height var(--random-transition);
-    max-width:       100vw;
-    max-height:      100vh;
+    position:                 fixed;
+    display:                  flex;
+    flex-direction:           column;
+    background:               var(--random-bg);
+    color:                    var(--random-text);
+    border:                   1px solid var(--random-border);
+    border-radius:            var(--random-radius);
+    box-shadow:               var(--random-shadow);
+    overflow:                 hidden;
+    box-sizing:               border-box;
+    will-change:              transform;
+    transition:               transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, width 0.2s ease, height 0.2s ease;
+    max-width:                100vw;
+    max-height:               100vh;
+    max-height:               100dvh;
 }
 
-/* Position variants (relative to whole page viewport) */
+/* Position variants (GPU hardware accelerated via translate3d) */
 .random-popup-content.position-normal {
-    top:             50%;
-    left:            50%;
-    transform:       translate(-50%, -50%) scale(0.9);
-    width:           var(--random-popup-width, 80%);
-    height:          var(--random-popup-height, 70%);
-    border-radius:   var(--random-radius);
+    top:                      50%;
+    left:                     50%;
+    transform:                translate3d(-50%, -50%, 0) scale(0.95);
+    opacity:                  0;
+    pointer-events:           none;
+    width:                    var(--random-popup-width, 80%);
+    height:                   var(--random-popup-height, 70%);
+    border-radius:            var(--random-radius);
+    will-change:              transform, opacity;
 }
 .random-overlay.show .random-popup-content.position-normal {
-    transform:       translate(-50%, -50%) scale(1);
+    transform:                translate3d(-50%, -50%, 0) scale(1);
+    opacity:                  1;
+    pointer-events:           auto;
 }
 
 .random-popup-content.position-left {
-    top:             0;
-    left:            0;
-    bottom:          0;
-    height:          100%;
-    width:           var(--random-popup-width, 40%);
-    transform:       translateX(-100%);
-    border-radius:   0 var(--random-radius) var(--random-radius) 0;
+    top:                      0;
+    left:                     0;
+    bottom:                   0;
+    height:                   100%;
+    height:                   100dvh;
+    width:                    var(--random-popup-width, 40%);
+    max-width:                92vw;
+    transform:                translate3d(-105%, 0, 0);
+    border-radius:            0 var(--random-radius) var(--random-radius) 0;
+    box-shadow:               8px 0 30px rgba(0, 0, 0, 0.5);
 }
 .random-overlay.show .random-popup-content.position-left {
-    transform:       translateX(0);
+    transform:                translate3d(0, 0, 0);
 }
 
 .random-popup-content.position-right {
-    top:             0;
-    right:           0;
-    bottom:          0;
-    height:          100%;
-    width:           var(--random-popup-width, 40%);
-    transform:       translateX(100%);
-    border-radius:   var(--random-radius) 0 0 var(--random-radius);
+    top:                      0;
+    right:                    0;
+    bottom:                   0;
+    height:                   100%;
+    height:                   100dvh;
+    width:                    var(--random-popup-width, 40%);
+    max-width:                92vw;
+    transform:                translate3d(105%, 0, 0);
+    border-radius:            var(--random-radius) 0 0 var(--random-radius);
+    box-shadow:               -8px 0 30px rgba(0, 0, 0, 0.5);
 }
 .random-overlay.show .random-popup-content.position-right {
-    transform:       translateX(0);
+    transform:                translate3d(0, 0, 0);
 }
 
 .random-popup-content.position-top {
-    top:             0;
-    left:            0;
-    right:           0;
-    width:           100%;
-    height:          var(--random-popup-height, 40%);
-    transform:       translateY(-100%);
-    border-radius:   0 0 var(--random-radius) var(--random-radius);
+    top:                      0;
+    left:                     0;
+    right:                    0;
+    width:                    100%;
+    height:                   var(--random-popup-height, 40%);
+    max-height:               92vh;
+    max-height:               92dvh;
+    transform:                translate3d(0, -105%, 0);
+    border-radius:            0 0 var(--random-radius) var(--random-radius);
+    box-shadow:               0 8px 30px rgba(0, 0, 0, 0.5);
 }
 .random-overlay.show .random-popup-content.position-top {
-    transform:       translateY(0);
+    transform:                translate3d(0, 0, 0);
 }
 
 .random-popup-content.position-bottom {
-    bottom:          0;
-    left:            0;
-    right:           0;
-    width:           100%;
-    height:          var(--random-popup-height, 40%);
-    transform:       translateY(100%);
-    border-radius:   var(--random-radius) var(--random-radius) 0 0;
+    bottom:                   0;
+    left:                     0;
+    right:                    0;
+    width:                    100%;
+    height:                   var(--random-popup-height, 40%);
+    max-height:               92vh;
+    max-height:               92dvh;
+    transform:                translate3d(0, 105%, 0);
+    border-radius:            var(--random-radius) var(--random-radius) 0 0;
+    box-shadow:               0 -8px 30px rgba(0, 0, 0, 0.5);
 }
 .random-overlay.show .random-popup-content.position-bottom {
-    transform:       translateY(0);
+    transform:                translate3d(0, 0, 0);
 }
 
 /* ── Header ──────────────────────────────────────────── */
